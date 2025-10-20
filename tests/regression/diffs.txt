@@ -1,0 +1,67 @@
+72c72
+< static void matmul_cpu(int32_t* out, const int8_t* A, const int8_t* B, uint32_t width, uint32_t height) {
+---
+> static void matmul_cpu(TYPE* out, const TYPE* A, const TYPE* B, uint32_t width, uint32_t height) {
+75,77c75
+<       int32_t sum(0);
+<       /*printf("Calculating C[%d,%d]:\n", row, col);
+<       printf("  Initial sum=0\n");*/
+---
+>       TYPE sum(0);
+80,83d77
+<           /*printf("A[%d,%d]=%d, B[%d,%d]=%d, partial sum=%d\n",
+<                  row, e, A[row * width + e],
+<                  e, col, B[e * width + col],
+<                  sum);*/
+149,150c143
+<   uint32_t input_buf_size = size_sq * sizeof(int8_t);
+<   uint32_t output_buf_size = size_sq * sizeof(int32_t);
+---
+>   uint32_t buf_size = size_sq * sizeof(TYPE);
+161c154
+<   RT_CHECK(vx_mem_alloc(device, input_buf_size, VX_MEM_READ, &A_buffer));
+---
+>   RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_READ, &A_buffer));
+163c156
+<   RT_CHECK(vx_mem_alloc(device, input_buf_size, VX_MEM_READ, &B_buffer));
+---
+>   RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_READ, &B_buffer));
+165c158
+<   RT_CHECK(vx_mem_alloc(device, output_buf_size, VX_MEM_WRITE, &C_buffer));
+---
+>   RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_WRITE, &C_buffer));
+173,175c166,168
+<   std::vector<int8_t> h_A(size_sq);
+<   std::vector<int8_t> h_B(size_sq);
+<   std::vector<int32_t> h_C(size_sq);
+---
+>   std::vector<TYPE> h_A(size_sq);
+>   std::vector<TYPE> h_B(size_sq);
+>   std::vector<TYPE> h_C(size_sq);
+177,178c170,171
+<     h_A[i] = static_cast<int8_t>(Comparator<TYPE>::generate());
+<     h_B[i] = static_cast<int8_t>(Comparator<TYPE>::generate());
+---
+>     h_A[i] = Comparator<TYPE>::generate();
+>     h_B[i] = Comparator<TYPE>::generate();
+184c177
+<     RT_CHECK(vx_copy_to_dev(A_buffer, h_A.data(), 0, input_buf_size));
+---
+>     RT_CHECK(vx_copy_to_dev(A_buffer, h_A.data(), 0, buf_size));
+190c183
+<     RT_CHECK(vx_copy_to_dev(B_buffer, h_B.data(), 0, input_buf_size));
+---
+>     RT_CHECK(vx_copy_to_dev(B_buffer, h_B.data(), 0, buf_size));
+217c210
+<   RT_CHECK(vx_copy_from_dev(h_C.data(), C_buffer, 0, output_buf_size));
+---
+>   RT_CHECK(vx_copy_from_dev(h_C.data(), C_buffer, 0, buf_size));
+223c216
+<     std::vector<int32_t> h_ref(size_sq);
+---
+>     std::vector<TYPE> h_ref(size_sq);
+227,228c220
+<       if (!Comparator<int>::compare(h_C[i], h_ref[i], i, errors)) {
+<         //printf("h_C[%d]=%d, h_ref[%d]=%d\n", i, h_C[i], i, h_ref[i]);
+---
+>       if (!Comparator<TYPE>::compare(h_C[i], h_ref[i], i, errors)) {

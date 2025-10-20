@@ -111,6 +111,16 @@ module VX_alu_unit import VX_gpu_pkg::*; #(
             .result_if  (pe_result_if[PE_IDX_MDV])
         );
     `endif
+    
+        VX_alu_dot8 #(
+            .INSTANCE_ID (`SFORMATF(("%s-muldiv%0d", INSTANCE_ID, block_idx))),
+            .NUM_LANES (NUM_LANES)
+        ) muldiv_unit (
+            .clk        (clk),
+            .reset      (reset),
+            .execute_if (pe_execute_if[PE_IDX_MDV]),
+            .result_if  (pe_result_if[PE_IDX_MDV])
+        );
     end
 
     VX_gather_unit #(
