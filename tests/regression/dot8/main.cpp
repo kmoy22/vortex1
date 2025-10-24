@@ -174,8 +174,8 @@ int main(int argc, char *argv[]) {
   std::vector<int8_t> h_B(size_sq);
   std::vector<int32_t> h_C(size_sq);
   for (uint32_t i = 0; i < size_sq; ++i) {
-    h_A[i] = static_cast<int8_t>(Comparator<TYPE>::generate());
-    h_B[i] = static_cast<int8_t>(Comparator<TYPE>::generate());
+    h_A[i] = Comparator<int>::generate();
+    h_B[i] = Comparator<int>::generate();
   }
 
   // upload matrix A buffer
