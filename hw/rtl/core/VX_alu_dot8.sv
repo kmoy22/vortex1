@@ -87,11 +87,23 @@ module VX_alu_dot8 import VX_gpu_pkg::*; #(
         wire [31:0] c, result;
 
         // TODO: calculate c
+        `ifdef XLEN_64
+        assign c = ($signed(a[7:0]) * $signed(b[7:0])) +
+                   ($signed(a[15:8]) * $signed(b[15:8])) +
+                   ($signed(a[23:16]) * $signed(b[23:16])) +
+                   ($signed(a[31:24]) * $signed(b[31:24])) +
+                   ($signed(a[39:32] & 8'b0) * $signed(b[39:32] & 8'b0)) +
+                   ($signed(a[47:40] & 8'b0) * $signed(b[47:40] & 8'b0)) +
+                   ($signed(a[55:48] & 8'b0) * $signed(b[55:48] & 8'b0)) +
+                   ($signed(a[63:56] & 8'b0) * $signed(b[63:56] & 8'b0)); // Hack to quash the contributions of the upper 4 products
+        `endif
+        
+        `ifdef XLEN_32
         assign c = $signed(a[7:0]) * $signed(b[7:0]) +
                    $signed(a[15:8]) * $signed(b[15:8]) +
                    $signed(a[23:16]) * $signed(b[23:16]) +
                    $signed(a[31:24]) * $signed(b[31:24]);
-        assign result = c;
+        `endif
 
         `BUFFER_EX(result, c, pe_enable, 1, LATENCY_DOT8);
         assign pe_data_out[i] = `XLEN'(result);
