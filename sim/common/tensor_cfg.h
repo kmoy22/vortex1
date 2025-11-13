@@ -22,6 +22,13 @@
 namespace vortex {
 namespace tensor {
 
+struct tf32 {
+  using dtype = uint32_t;
+  static constexpr uint32_t id = 3;
+  static constexpr uint32_t bits = 32;
+  static constexpr const char* name = "tf32";
+};
+
 struct fp32 {
   using dtype = float;
   static constexpr uint32_t id = 0;
@@ -80,6 +87,7 @@ struct uint4 {
 
 inline const char* fmt_string(uint32_t fmt) {
   switch (fmt) {
+  case tf32::id:  return tf32::name;
   case fp32::id:  return fp32::name;
   case fp16::id:  return fp16::name;
   case bf16::id:  return bf16::name;
