@@ -58,9 +58,9 @@ module VX_tcu_fedp_bhf #(
         assign b_col16[2*i+1] = b_col[i][31:16];
 
         assign a_row32[2*i]   = a_row[i][31:0];
-        assign a_row32[2*i+1] = a_row[i][31:0]; //  Hint: To share the same accumulator with fp16/fp16, the TF32 multiplier should interleave its 4 outputs with zeros to generate 8 inputs for the next stage.
+        assign a_row32[2*i+1] = 32'b0; //  Hint: To share the same accumulator with fp16/fp16, the TF32 multiplier should interleave its 4 outputs with zeros to generate 8 inputs for the next stage.
         assign b_col32[2*i]   = b_col[i][31:0];
-        assign b_col32[2*i+1] = b_col[i][31:0]; //  Hint: To share the same accumulator with fp16/fp16, the TF32 multiplier should interleave its 4 outputs with zeros to generate 8 inputs for the next stage.
+        assign b_col32[2*i+1] = 32'b0; //  Hint: To share the same accumulator with fp16/fp16, the TF32 multiplier should interleave its 4 outputs with zeros to generate 8 inputs for the next stage.
     end
 
     // Transprecision Multiply
@@ -128,30 +128,25 @@ module VX_tcu_fedp_bhf #(
         );
 
         // TF32 multiplication
-        if (i % 2 == 0) begin
-            VX_tcu_bhf_fmul #(
-                .IN_EXPW (8),
-                .IN_SIGW (10+1),
-                .OUT_EXPW(8),
-                .OUT_SIGW(24),
-                .IN_REC  (0), // input in IEEE format
-                .OUT_REC (1), // output in recoded format
-                .MUL_LATENCY (FMUL_LATENCY),
-                .RND_LATENCY (FRND_LATENCY)
-            ) tf32_mul (
-                .clk    (clk),
-                .reset  (reset),
-                .enable (enable),
-                .frm    (frm),
-                .a      (a_row32[i][18:0]),
-                .b      (b_col32[i][18:0]),
-                .y      (mult_result_tf32),
-                `UNUSED_PIN(fflags)
-            );  
-        end
-        else begin
-            assign mult_result_tf32 = 33'd0;
-        end
+        VX_tcu_bhf_fmul #(
+            .IN_EXPW (8),
+            .IN_SIGW (10+1),
+            .OUT_EXPW(8),
+            .OUT_SIGW(24),
+            .IN_REC  (0), // input in IEEE format
+            .OUT_REC (1), // output in recoded format
+            .MUL_LATENCY (FMUL_LATENCY),
+            .RND_LATENCY (FRND_LATENCY)
+        ) tf32_mul (
+            .clk    (clk),
+            .reset  (reset),
+            .enable (enable),
+            .frm    (frm),
+            .a      (a_row32[i][18:0]),
+            .b      (b_col32[i][18:0]),
+            .y      (mult_result_tf32),
+            `UNUSED_PIN(fflags)
+        );  
 
         logic [32:0] mult_result_mux;
 
