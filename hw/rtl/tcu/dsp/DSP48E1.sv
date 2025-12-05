@@ -36,61 +36,61 @@ module DSP48E1 #(
 )
 (
    // Cascade: 30-bit (each) output: Cascade Ports
-   output ACOUT[29:0],                   // 30-bit output: A port cascade output
-   output BCOUT[17:0],                   // 18-bit output: B port cascade output
-   output CARRYCASCOUT,     // 1-bit output: Cascade carry output
-   output MULTSIGNOUT,       // 1-bit output: Multiplier sign cascade output
-   output PCOUT[47:0],                   // 48-bit output: Cascade output
+   output logic [29:0] ACOUT,                   // 30-bit output: A port cascade output
+   output logic [17:0] BCOUT,                   // 18-bit output: B port cascade output
+   output logic CARRYCASCOUT,     // 1-bit output: Cascade carry output
+   output logic MULTSIGNOUT,       // 1-bit output: Multiplier sign cascade output
+   output logic [47:0] PCOUT,                   // 48-bit output: Cascade output
    // Control: 1-bit (each) output: Control Inputs/Status Bits
-   output OVERFLOW,             // 1-bit output: Overflow in add/acc output
-   output PATTERNBDETECT, // 1-bit output: Pattern bar detect output
-   output PATTERNDETECT,   // 1-bit output: Pattern detect output
-   output UNDERFLOW,           // 1-bit output: Underflow in add/acc output
+   output logic OVERFLOW,             // 1-bit output: Overflow in add/acc output
+   output logic PATTERNBDETECT, // 1-bit output: Pattern bar detect output
+   output logic PATTERNDETECT,   // 1-bit output: Pattern detect output
+   output logic UNDERFLOW,           // 1-bit output: Underflow in add/acc output
    // Data: 4-bit (each) output: Data Ports
-   output CARRYOUT[3:0],             // 4-bit output: Carry output
-   output P[47:0],                           // 48-bit output: Primary data output
+   output logic [3:0] CARRYOUT,             // 4-bit output: Carry output
+   output logic [47:0] P,                           // 48-bit output: Primary data output
    // Cascade: 30-bit (each) input: Cascade Ports
-   input ACIN[29:0],                     // 30-bit input: A cascade data input
-   input BCIN[17:0],                     // 18-bit input: B cascade input
-   input CARRYCASCIN,       // 1-bit input: Cascade carry input
-   input MULTSIGNIN,         // 1-bit input: Multiplier sign input
-   input PCIN[47:0],                     // 48-bit input: P cascade input
+   input logic [29:0] ACIN,                     // 30-bit input: A cascade data input
+   input logic [17:0] BCIN,                     // 18-bit input: B cascade input
+   input logic CARRYCASCIN,       // 1-bit input: Cascade carry input
+   input logic MULTSIGNIN,         // 1-bit input: Multiplier sign input
+   input logic [47:0] PCIN,                     // 48-bit input: P cascade input
    // Control: 4-bit (each) input: Control Inputs/Status Bits
-   input ALUMODE[3:0],               // 4-bit input: ALU control input
-   input CARRYINSEL[2:0],         // 3-bit input: Carry select input
-   input CLK,                       // 1-bit input: Clock input
-   input INMODE[4:0],                 // 5-bit input: INMODE control input
-   input OPMODE[6:0],                 // 7-bit input: Operation mode input
+   input logic [3:0] ALUMODE,               // 4-bit input: ALU control input
+   input logic [2:0] CARRYINSEL,         // 3-bit input: Carry select input
+   input logic CLK,                       // 1-bit input: Clock input
+   input logic [4:0] INMODE,                 // 5-bit input: INMODE control input
+   input logic [6:0] OPMODE,                 // 7-bit input: Operation mode input
    // Data: 30-bit (each) input: Data Ports
-   input A[29:0],                           // 30-bit input: A data input
-   input B[17:0],                           // 18-bit input: B data input
-   input C[47:0],                           // 48-bit input: C data input
-   input CARRYIN,               // 1-bit input: Carry input signal
-   input D[24:0],                           // 25-bit input: D data input
+   input logic [29:0] A,                           // 30-bit input: A data input
+   input logic [17:0] B,                           // 18-bit input: B data input
+   input logic [47:0] C,                           // 48-bit input: C data input
+   input logic CARRYIN,               // 1-bit input: Carry input signal
+   input logic [24:0] D,                           // 25-bit input: D data input
    // Reset/Clock Enable: 1-bit (each) input: Reset/Clock Enable Inputs
-   input CEA1,                     // 1-bit input: Clock enable input for 1st stage AREG
-   input CEA2,                     // 1-bit input: Clock enable input for 2nd stage AREG
-   input CEAD,                     // 1-bit input: Clock enable input for ADREG
-   input CEALUMODE,           // 1-bit input: Clock enable input for ALUMODE
-   input CEB1,                     // 1-bit input: Clock enable input for 1st stage BREG
-   input CEB2,                     // 1-bit input: Clock enable input for 2nd stage BREG
-   input CEC,                       // 1-bit input: Clock enable input for CREG
-   input CECARRYIN,           // 1-bit input: Clock enable input for CARRYINREG
-   input CECTRL,                 // 1-bit input: Clock enable input for OPMODEREG and CARRYINSELREG
-   input CED,                       // 1-bit input: Clock enable input for DREG
-   input CEINMODE,             // 1-bit input: Clock enable input for INMODEREG
-   input CEM,                       // 1-bit input: Clock enable input for MREG
-   input CEP,                       // 1-bit input: Clock enable input for PREG
-   input RSTA,                     // 1-bit input: Reset input for AREG
-   input RSTALLCARRYIN,   // 1-bit input: Reset input for CARRYINREG
-   input RSTALUMODE,         // 1-bit input: Reset input for ALUMODEREG
-   input RSTB,                     // 1-bit input: Reset input for BREG
-   input RSTC,                     // 1-bit input: Reset input for CREG
-   input RSTCTRL,               // 1-bit input: Reset input for OPMODEREG and CARRYINSELREG
-   input RSTD,                     // 1-bit input: Reset input for DREG and ADREG
-   input RSTINMODE,           // 1-bit input: Reset input for INMODEREG
-   input RSTM,                     // 1-bit input: Reset input for MREG
-   input RSTP                      // 1-bit input: Reset input for PREG
+   input logic CEA1,                     // 1-bit input: Clock enable input for 1st stage AREG
+   input logic CEA2,                     // 1-bit input: Clock enable input for 2nd stage AREG
+   input logic CEAD,                     // 1-bit input: Clock enable input for ADREG
+   input logic CEALUMODE,           // 1-bit input: Clock enable input for ALUMODE
+   input logic CEB1,                     // 1-bit input: Clock enable input for 1st stage BREG
+   input logic CEB2,                     // 1-bit input: Clock enable input for 2nd stage BREG
+   input logic CEC,                       // 1-bit input: Clock enable input for CREG
+   input logic CECARRYIN,           // 1-bit input: Clock enable input for CARRYINREG
+   input logic CECTRL,                 // 1-bit input: Clock enable input for OPMODEREG and CARRYINSELREG
+   input logic CED,                       // 1-bit input: Clock enable input for DREG
+   input logic CEINMODE,             // 1-bit input: Clock enable input for INMODEREG
+   input logic CEM,                       // 1-bit input: Clock enable input for MREG
+   input logic CEP,                       // 1-bit input: Clock enable input for PREG
+   input logic RSTA,                     // 1-bit input: Reset input for AREG
+   input logic RSTALLCARRYIN,   // 1-bit input: Reset input for CARRYINREG
+   input logic RSTALUMODE,         // 1-bit input: Reset input for ALUMODEREG
+   input logic RSTB,                     // 1-bit input: Reset input for BREG
+   input logic RSTC,                     // 1-bit input: Reset input for CREG
+   input logic RSTCTRL,               // 1-bit input: Reset input for OPMODEREG and CARRYINSELREG
+   input logic RSTD,                     // 1-bit input: Reset input for DREG and ADREG
+   input logic RSTINMODE,           // 1-bit input: Reset input for INMODEREG
+   input logic RSTM,                     // 1-bit input: Reset input for MREG
+   input logic RSTP                      // 1-bit input: Reset input for PREG
 );
 
 // DPI-C Code
@@ -135,7 +135,7 @@ module DSP48E1 #(
 
    wire unused_ok = &{1'b1,
                       CEA1, CEA2, CEAD, CEALUMODE, CEB1, CEB2, CEC, CECARRYIN, CECTRL, CED, CEINMODE, CEM, CEP,
-                      RSTA, RSTALLCARRYIN, RSTALUMODE, RSTB, RSTC, RSTCTRL, RSTD, RSTINMODE, RSTM, RSTP}
+                      RSTA, RSTALLCARRYIN, RSTALUMODE, RSTB, RSTC, RSTCTRL, RSTD, RSTINMODE, RSTM, RSTP};
 
    assign ACOUT = 30'b0;
    assign BCOUT = 18'b0;
