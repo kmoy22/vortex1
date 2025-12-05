@@ -93,8 +93,60 @@ module DSP48E1 #(
    input RSTP                      // 1-bit input: Reset input for PREG
 );
 
-// Place DPI-C Code here
+// DPI-C Code
+   import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
+   import "DPI-C" function logic dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
 
+   initial begin
+      int a1 = A1;
+      int a2 = A2;
+      int b1 = B1;
+      int b2 = B2;
+      int c = C;
+      int d = D;
+      byte opmode = OPMODE;
+      byte alumode = ALUMODE;
+      byte inmode = INMODE;
+      byte carryinsel = CARRYINSEL;
+      logic carryin = CARRYIN;
+      logic carrycascin = CARRYCASCIN;
+
+      longint result;
+      result = dsp48e1_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
+      logic p_carry;
+      p_carry = dsp48e1_carry_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
+
+      CARRYOUT[3] = p_carry;
+      P = result[47:0];
+   end
+
+   logic[29:0] A1;
+   logic[29:0] A2;
+   logic[17:0] B1;
+   logic[17:0] B2;
+
+   assign A1 = A_INPUT == "DIRECT" ? A : ACIN;
+   assign B1 = B_INPUT == "DIRECT" ? B : BCIN;
+
+   always @(posedge CLK) begin // Model the pipeline registers for A and B inputs
+      A2 <= A1;
+      B2 <= B1;
+   end
+
+   wire unused_ok = &{1'b1,
+                      CEA1, CEA2, CEAD, CEALUMODE, CEB1, CEB2, CEC, CECARRYIN, CECTRL, CED, CEINMODE, CEM, CEP,
+                      RSTA, RSTALLCARRYIN, RSTALUMODE, RSTB, RSTC, RSTCTRL, RSTD, RSTINMODE, RSTM, RSTP}
+
+   assign ACOUT = 30'b0;
+   assign BCOUT = 18'b0;
+   assign CARRYCASCOUT = 1'b0;
+   assign MULTSIGNOUT = 1'b0;
+   assign PCOUT = 48'b0;
+   assign OVERFLOW = 1'b0;
+   assign PATTERNBDETECT = 1'b0;
+   assign PATTERNDETECT = 1'b0;
+   assign UNDERFLOW = 1'b0;
+   assign CARRYOUT[2:0] = 3'b0;
 
 endmodule
 
