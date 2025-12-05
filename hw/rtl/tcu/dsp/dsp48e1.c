@@ -386,19 +386,19 @@ int64_t carry_select(int8_t carryinsel, bool carryin, bool carrycascin, bool car
             carryin_output = (int64_t) carryin;
             break;
         case 1: // 001
-            carryin_output = (int64_t) (~pcin & (0x1 << 47));
+            carryin_output = (int64_t) (~pcin & (0x1ULL << 47));
             break;
         case 2: // 010
             carryin_output = (int64_t) carrycascin;
             break;
         case 3: // 011
-            carryin_output = (int64_t) ~(~pcin & (0x1 << 47));
+            carryin_output = (int64_t) ~(~pcin & (0x1ULL << 47));
             break;
         case 4: // 100
             carryin_output = (int64_t) carrycascout;
             break;
         case 5: // 101
-            carryin_output = (int64_t) (~p & (0x1 << 47));
+            carryin_output = (int64_t) (~p & (0x1ULL << 47));
             break;
         case 6: // 110
             bool a_24 = (a & (0x1ULL << 24)) != 0;
@@ -406,7 +406,7 @@ int64_t carry_select(int8_t carryinsel, bool carryin, bool carrycascin, bool car
             carryin_output = (int64_t) (a_24 ^ b_17);
             break;
         case 7: // 111
-            carryin_output = (int64_t) ~(~p & (0x1 << 47));
+            carryin_output = (int64_t) ~(~p & (0x1ULL << 47));
             break;
     }
 
@@ -517,7 +517,7 @@ int64_t dsp48e1(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c, int32
 
 long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d,
                               signed char opmode, signed char alumode, signed char inmode, signed char carryinsel,
-                              unsigned char carryin, unsigned char carrycascin)
+                              bool carryin, bool carrycascin)
 {
     return (long long)dsp48e1((int32_t)a1, (int32_t)a2, (int32_t)b1, (int32_t)b2,
                              (int64_t)c, (int32_t)d,
@@ -632,7 +632,7 @@ int64_t dsp48e1_carry(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c,
 
 unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d,
                                         signed char opmode, signed char alumode, signed char inmode, signed char carryinsel,
-                                        unsigned char carryin, unsigned char carrycascin)
+                                        bool carryin, bool carrycascin)
 {
     return (unsigned char)dsp48e1_carry((int32_t)a1, (int32_t)a2, (int32_t)b1, (int32_t)b2,
                                         (int64_t)c, (int32_t)d,
@@ -640,7 +640,6 @@ unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long lon
                                         (bool)carryin, (bool)carrycascin);
 }
 
-/*
 int main() {
     // A basic test code to call the dsp48e1 function
 
@@ -681,4 +680,4 @@ int main() {
     printf("Result: %d\n", result);
 
     return 0;
-}*/
+}
