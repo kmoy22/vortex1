@@ -640,6 +640,7 @@ unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long lon
                                         (bool)carryin, (bool)carrycascin);
 }
 
+/*
 int main() {
     // A basic test code to call the dsp48e1 function
 
@@ -680,4 +681,4 @@ int main() {
     printf("Result: %d\n", result);
 
     return 0;
-}
+}*/
