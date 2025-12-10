@@ -9,72 +9,10 @@
 
 #define USE_DPORT = 1;
 
-typedef struct dsp48e1_output_t
-{
-    int64_t p; // 48-bits
-    int64_t pcout; // 48-bits
-
-    int32_t acout; // 30-bits
-    int32_t bcout; // 18-bits
-
-    int8_t carryout; // 4-bit
-    bool carrycascout; // 1-bit
-    bool multsignout; // 1-bit
-
-    bool patterndetect; // 1-bit
-    bool patternbdetect; // 1-bit
-
-    bool overflow; // 1-bit
-    bool underflow; // 1-bit
-} dsp48e1_output_t;
-
-typedef struct dsp48e1_input_t
-{
-    int32_t a; // 30-bits
-    int32_t b; // 18-bits
-    int64_t c; // 48-bits
-    int32_t d; // 25-bits
-
-    int8_t opmode; // 7-bits
-    int8_t alumode; // 4-bits
-    bool carryin; // 1-bit
-    int8_t carryinsel; // 3-bits
-    int8_t inmode; // 5-bits
-
-    bool cea_1; // 1-bit
-    bool cea_2; // 1-bit
-    bool ceb_1; // 1-bit
-    bool ceb_2; // 1-bit
-    bool cec; // 1-bit
-    bool ced; // 1-bit
-    bool cem; // 1-bit
-    bool cep; // 1-bit
-    bool cead; // 1-bit
-
-    bool cealumode; // 1-bit
-    bool cectrl; // 1-bit
-    bool cecarryin; // 1-bit
-    bool ceinmode; // 1-bit
-
-    bool rsta; // 1-bit
-    bool rstb; // 1-bit
-    bool rstc; // 1-bit
-    bool rstd; // 1-bit
-    bool rstm; // 1-bit
-    bool rstp; // 1-bit
-    bool rstctrl; // 1-bit
-    bool rstallcarryin; // 1-bit
-    bool rstaluinmode; // 1-bit
-    bool rstinmode; // 1-bit
-
-    bool clk; // 1-bit
-
-    int32_t acin; // 30-bits
-    int32_t bcin; // 18-bits
-    int64_t pcin; // 48-bits
-    bool carrycascin; // 1-bit
-    bool multsignin; // 1-bit
-} dsp48e1_input_t;
+extern "C" {
+    long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin)
+    unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin);
+}
 
 int32_t a_select(int32_t a1, int32_t a2, int8_t inmode) {
     // A input selection based on INMODE
@@ -515,15 +453,6 @@ int64_t dsp48e1(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c, int32
     return p;
 }
 
-long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d,
-                              signed char opmode, signed char alumode, signed char inmode, signed char carryinsel,
-                              bool carryin, bool carrycascin)
-{
-    return (long long)dsp48e1((int32_t)a1, (int32_t)a2, (int32_t)b1, (int32_t)b2,
-                             (int64_t)c, (int32_t)d,
-                             (int8_t)opmode, (int8_t)alumode, (int8_t)inmode, (int8_t)carryinsel,
-                             (bool)carryin, (bool)carrycascin);
-}
 
 int64_t dsp48e1_carry(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c, int32_t d, int8_t opmode, int8_t alumode, int8_t inmode, int8_t carryinsel, bool carryin, bool carrycascin) {
     // Core functionality of the DSP48E1 module
@@ -628,6 +557,17 @@ int64_t dsp48e1_carry(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c,
     bool p_carry = (p & p_carry_mask) != 0;
 
     return p_carry;
+}
+
+
+long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d,
+                              signed char opmode, signed char alumode, signed char inmode, signed char carryinsel,
+                              bool carryin, bool carrycascin)
+{
+    return (long long)dsp48e1((int32_t)a1, (int32_t)a2, (int32_t)b1, (int32_t)b2,
+                             (int64_t)c, (int32_t)d,
+                             (int8_t)opmode, (int8_t)alumode, (int8_t)inmode, (int8_t)carryinsel,
+                             (bool)carryin, (bool)carrycascin);
 }
 
 unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d,

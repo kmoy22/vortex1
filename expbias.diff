@@ -1,0 +1,826 @@
+diff --git a/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias.sv b/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias.sv
+index 9b37c5f2..66ede496 100644
+--- a/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias.sv
++++ b/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias.sv
+@@ -13,128 +13,46 @@
+ 
+ `include "VX_define.vh"
+ 
++//This module is aimed for fp32 multiplication in 2 DSP slices
++// FP32 only version of exponent biasing and preprocessing
++
++//for a pair of input fp32 operands, a and b
++//extract exponent exp_a, exp_b
++//calculate the exponent of product e_prod_unbiased - exp_a + exp_b - 127
++// saturate the result to 0..255
++//since only for fp32, the exp_low_larger and raw_exp_diff are not used, set them to 0.
++
+ module VX_tcu_drl_exp_bias (
+     input wire enable,
+-    input wire [2:0] fmt_s,
+-    input wire [15:0] a,
+-    input wire [15:0] b,
+-    output logic [7:0] raw_exp_y,
+-    output logic exp_low_larger,
+-    output logic [6:0] raw_exp_diff
+-);
+-    //NOTE: exception handling neglected for now
+-    `UNUSED_VAR({a, b, enable});
++    input wire [3:0] fmt_s, //[2:0] or [3:0] maybe  a problem in the future, but not now
++    input wire [31:0] a,
++    input wire [31:0] b,
+ 
+-    //FP16 exponent addition and bias
+-    wire [7:0] raw_exp_fp16;
+-    wire [7:0] fp16_32_conv_bias = 8'd98;    //127-30 + 1
+-    VX_csa_tree #(
+-        .N(3),
+-        .W(8),
+-        .S(8)
+-    ) biasexp_fp16(
+-        .operands({{3'd0, a[14:10]}, {3'd0, b[14:10]}, fp16_32_conv_bias}),
+-        .sum     (raw_exp_fp16),
+-        `UNUSED_PIN (cout)
+-    );
++    output logic [7:0] raw_exp_y, //per product exponent for DRL
++    output logic exp_low_larger, //not used for fp32
++    output logic [6:0] raw_exp_diff, //not used for fp32
++);
+ 
+-    //BF16 exponent addition and bias
+-    wire [7:0] raw_exp_bf16;
+-    wire [9:0] neg_bias = 10'b1110000010; //-127+1
+-    wire [9:0] raw_exp_bf16_signed;
+-    `UNUSED_VAR(raw_exp_bf16_signed);
+-    VX_csa_tree #(
+-        .N(3),
+-        .W(10),
+-        .S(10)
+-    ) biasexp_bf16(
+-        .operands({{2'd0, a[14:7]}, {2'd0, b[14:7]}, neg_bias}),
+-        .sum     (raw_exp_bf16_signed),
+-        `UNUSED_PIN (cout)
+-    );
+-    assign raw_exp_bf16 = raw_exp_bf16_signed[9] ? -raw_exp_bf16_signed[7:0] : raw_exp_bf16_signed[7:0];
++    //NOTE: exception handling neglected for now
++    `UNUSED_VAR({enable});
+ 
+-    //FP8 (E4M3) exponent addition and bias
+-    wire [7:0] raw_exp_fp8;
+-    wire [1:0][4:0] raw_exp_fp8_sub;
+-    for (genvar i = 0; i < 2; i++) begin  :  g_fp8_sub
+-        VX_ks_adder #(
+-            .N(4)
+-        ) raw_exp_fp8_sub_add (
+-            .dataa (a[(i*8)+6 -: 4]),
+-            .datab (b[(i*8)+6 -: 4]),
+-            .sum   (raw_exp_fp8_sub[i][3:0]),
+-            .cout  (raw_exp_fp8_sub[i][4])
+-        );
+-    end
+-    wire [5:0] raw_exp_fp8_diff = {1'b0, raw_exp_fp8_sub[1]} - {1'b0, raw_exp_fp8_sub[0]};
+-    wire fp8_exp_low_larger = raw_exp_fp8_diff[5];
+-    wire [4:0] raw_exp_fp8_unbiased = fp8_exp_low_larger ? raw_exp_fp8_sub[0] : raw_exp_fp8_sub[1];
+-    wire [7:0] fp8_conv_bias_fp32 = 8'd115;    //127-14+2
+-    VX_ks_adder #(
+-        .N(8)
+-    ) biasexp_fp8 (
+-        .dataa ({3'd0, raw_exp_fp8_unbiased}),
+-        .datab (fp8_conv_bias_fp32),
+-        .sum   (raw_exp_fp8),
+-        `UNUSED_PIN (cout)
+-    );
++    //extract exponent from a and b
++    logic [7:0] exp_a, exp_b;
++    assign exp_a = a[30:23];
++    assign exp_b = b[30:23];
+ 
+-    //BF8 (E5M2) exponent addition and bias
+-    wire [7:0] raw_exp_bf8;
+-    wire [1:0][5:0] raw_exp_bf8_sub;
+-    for (genvar j = 0; j < 2; j++) begin  :  g_bf8_sub
+-        VX_ks_adder #(
+-            .N(5)
+-        ) raw_exp_bf8_sub_add (
+-            .dataa (a[(j*8)+6 -: 5]),
+-            .datab (b[(j*8)+6 -: 5]),
+-            .sum   (raw_exp_bf8_sub[j][4:0]),
+-            .cout  (raw_exp_bf8_sub[j][5])
+-        );
+-    end
+-    wire [6:0] raw_exp_bf8_diff = {1'b0, raw_exp_bf8_sub[1]} - {1'b0, raw_exp_bf8_sub[0]};
+-    wire bf8_exp_low_larger = raw_exp_bf8_diff[6];
+-    wire [5:0] raw_exp_bf8_unbiased = bf8_exp_low_larger ? raw_exp_bf8_sub[0] : raw_exp_bf8_sub[1];
+-    wire [7:0] bf8_conv_bias_fp32 = 8'd99;    //127-30+2
+-    VX_ks_adder #(
+-        .N(8)
+-    ) biasexp_bf8 (
+-        .dataa ({2'd0, raw_exp_bf8_unbiased}),
+-        .datab (bf8_conv_bias_fp32),
+-        .sum   (raw_exp_bf8),
+-        `UNUSED_PIN (cout)
+-    );
++    //calculate the unbiassed exponent of product
++    wire signed [8:0] e_unbiased = $signed({1'b0, exp_a}) + $signed({1'b0, exp_b}) - 9'sd127;
+ 
+-    //Select exp out based on datatype
+     always_comb begin
+-        case(fmt_s[2:0])
+-            3'd1: begin
+-                raw_exp_y      = raw_exp_fp16;
+-                exp_low_larger = 1'bx;
+-                raw_exp_diff   = 7'dx;                 
+-            end
+-            3'd2: begin
+-                raw_exp_y      = raw_exp_bf16;
+-                exp_low_larger = 1'bx;
+-                raw_exp_diff   = 7'dx;                    
+-            end
+-            3'd3: begin
+-                raw_exp_y      = raw_exp_fp8;
+-                exp_low_larger = fp8_exp_low_larger;
+-                raw_exp_diff   = {raw_exp_fp8_diff[5], raw_exp_fp8_diff};                    
+-            end
+-            3'd4: begin
+-                raw_exp_y      = raw_exp_bf8;
+-                exp_low_larger = bf8_exp_low_larger;
+-                raw_exp_diff   = raw_exp_bf8_diff;                    
+-            end
+-            default: begin
+-                raw_exp_y      = 8'dx;
+-                exp_low_larger = 1'bx;
+-                raw_exp_diff   = 7'dx;
+-            end
+-        endcase
++        if (e_unbiased < 9'sd0)
++            raw_exp_y = 8'd0;
++        else if (e_unbiased > 8'd255)
++            raw_exp_y = 8'd255;
++        else
++            raw_exp_y = e_unbiased[7:0];
++
++        exp_low_larger = 1'b0;
++        raw_exp_diff = 7'd0;
+     end
+-
+-endmodule
++endmodule
+\ No newline at end of file
+diff --git a/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias_bak.sv b/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias_bak.sv
+new file mode 100644
+index 00000000..2c350c23
+--- /dev/null
++++ b/hw/rtl/tcu/drl/VX_tcu_drl_exp_bias_bak.sv
+@@ -0,0 +1,140 @@
++// Copyright © 2019-2023
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++// http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++`include "VX_define.vh"
++
++module VX_tcu_drl_exp_bias (
++    input wire enable,
++    input wire [2:0] fmt_s,
++    input wire [15:0] a,
++    input wire [15:0] b,
++    output logic [7:0] raw_exp_y,
++    output logic exp_low_larger,
++    output logic [6:0] raw_exp_diff
++);
++    //NOTE: exception handling neglected for now
++    `UNUSED_VAR({a, b, enable});
++
++    //FP16 exponent addition and bias
++    wire [7:0] raw_exp_fp16;
++    wire [7:0] fp16_32_conv_bias = 8'd98;    //127-30 + 1
++    VX_csa_tree #(
++        .N(3),
++        .W(8),
++        .S(8)
++    ) biasexp_fp16(
++        .operands({{3'd0, a[14:10]}, {3'd0, b[14:10]}, fp16_32_conv_bias}),
++        .sum     (raw_exp_fp16),
++        `UNUSED_PIN (cout)
++    );
++
++    //BF16 exponent addition and bias
++    wire [7:0] raw_exp_bf16;
++    wire [9:0] neg_bias = 10'b1110000010; //-127+1
++    wire [9:0] raw_exp_bf16_signed;
++    `UNUSED_VAR(raw_exp_bf16_signed);
++    VX_csa_tree #(
++        .N(3),
++        .W(10),
++        .S(10)
++    ) biasexp_bf16(
++        .operands({{2'd0, a[14:7]}, {2'd0, b[14:7]}, neg_bias}),
++        .sum     (raw_exp_bf16_signed),
++        `UNUSED_PIN (cout)
++    );
++    assign raw_exp_bf16 = raw_exp_bf16_signed[9] ? -raw_exp_bf16_signed[7:0] : raw_exp_bf16_signed[7:0];
++
++    //FP8 (E4M3) exponent addition and bias
++    wire [7:0] raw_exp_fp8;
++    wire [1:0][4:0] raw_exp_fp8_sub;
++    for (genvar i = 0; i < 2; i++) begin  :  g_fp8_sub
++        VX_ks_adder #(
++            .N(4)
++        ) raw_exp_fp8_sub_add (
++            .dataa (a[(i*8)+6 -: 4]),
++            .datab (b[(i*8)+6 -: 4]),
++            .sum   (raw_exp_fp8_sub[i][3:0]),
++            .cout  (raw_exp_fp8_sub[i][4])
++        );
++    end
++    wire [5:0] raw_exp_fp8_diff = {1'b0, raw_exp_fp8_sub[1]} - {1'b0, raw_exp_fp8_sub[0]};
++    wire fp8_exp_low_larger = raw_exp_fp8_diff[5];
++    wire [4:0] raw_exp_fp8_unbiased = fp8_exp_low_larger ? raw_exp_fp8_sub[0] : raw_exp_fp8_sub[1];
++    wire [7:0] fp8_conv_bias_fp32 = 8'd115;    //127-14+2
++    VX_ks_adder #(
++        .N(8)
++    ) biasexp_fp8 (
++        .dataa ({3'd0, raw_exp_fp8_unbiased}),
++        .datab (fp8_conv_bias_fp32),
++        .sum   (raw_exp_fp8),
++        `UNUSED_PIN (cout)
++    );
++
++    //BF8 (E5M2) exponent addition and bias
++    wire [7:0] raw_exp_bf8;
++    wire [1:0][5:0] raw_exp_bf8_sub;
++    for (genvar j = 0; j < 2; j++) begin  :  g_bf8_sub
++        VX_ks_adder #(
++            .N(5)
++        ) raw_exp_bf8_sub_add (
++            .dataa (a[(j*8)+6 -: 5]),
++            .datab (b[(j*8)+6 -: 5]),
++            .sum   (raw_exp_bf8_sub[j][4:0]),
++            .cout  (raw_exp_bf8_sub[j][5])
++        );
++    end
++    wire [6:0] raw_exp_bf8_diff = {1'b0, raw_exp_bf8_sub[1]} - {1'b0, raw_exp_bf8_sub[0]};
++    wire bf8_exp_low_larger = raw_exp_bf8_diff[6];
++    wire [5:0] raw_exp_bf8_unbiased = bf8_exp_low_larger ? raw_exp_bf8_sub[0] : raw_exp_bf8_sub[1];
++    wire [7:0] bf8_conv_bias_fp32 = 8'd99;    //127-30+2
++    VX_ks_adder #(
++        .N(8)
++    ) biasexp_bf8 (
++        .dataa ({2'd0, raw_exp_bf8_unbiased}),
++        .datab (bf8_conv_bias_fp32),
++        .sum   (raw_exp_bf8),
++        `UNUSED_PIN (cout)
++    );
++
++    //Select exp out based on datatype
++    always_comb begin
++        case(fmt_s[2:0])
++            3'd1: begin
++                raw_exp_y      = raw_exp_fp16;
++                exp_low_larger = 1'bx;
++                raw_exp_diff   = 7'dx;                 
++            end
++            3'd2: begin
++                raw_exp_y      = raw_exp_bf16;
++                exp_low_larger = 1'bx;
++                raw_exp_diff   = 7'dx;                    
++            end
++            3'd3: begin
++                raw_exp_y      = raw_exp_fp8;
++                exp_low_larger = fp8_exp_low_larger;
++                raw_exp_diff   = {raw_exp_fp8_diff[5], raw_exp_fp8_diff};                    
++            end
++            3'd4: begin
++                raw_exp_y      = raw_exp_bf8;
++                exp_low_larger = bf8_exp_low_larger;
++                raw_exp_diff   = raw_exp_bf8_diff;                    
++            end
++            default: begin
++                raw_exp_y      = 8'dx;
++                exp_low_larger = 1'bx;
++                raw_exp_diff   = 7'dx;
++            end
++        endcase
++    end
++
++endmodule
+diff --git a/hw/rtl/tcu/drl/VX_txu_drl_shared_mul.sv b/hw/rtl/tcu/drl/VX_tcu_drl_shared_mul.sv
+similarity index 96%
+rename from hw/rtl/tcu/drl/VX_txu_drl_shared_mul.sv
+rename to hw/rtl/tcu/drl/VX_tcu_drl_shared_mul.sv
+index 9a0e923a..dc1323fa 100644
+--- a/hw/rtl/tcu/drl/VX_txu_drl_shared_mul.sv
++++ b/hw/rtl/tcu/drl/VX_tcu_drl_shared_mul.sv
+@@ -1,252 +1,252 @@
+-// Copyright © 2019-2023
+-//
+-// Licensed under the Apache License, Version 2.0 (the "License");
+-// you may not use this file except in compliance with the License.
+-// You may obtain a copy of the License at
+-// http://www.apache.org/licenses/LICENSE-2.0
+-//
+-// Unless required by applicable law or agreed to in writing, software
+-// distributed under the License is distributed on an "AS IS" BASIS,
+-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-// See the License for the specific language governing permissions and
+-// limitations under the License.
+-
+-`include "VX_define.vh"
+-
+-// This module is used to multiply two fp32 operands
+-// following IEEE 754 format, extract sign_a, sign_b, exp_a, exp_b, frac_a, frac_b
+-//form 24-bit mantissa multiplication mant_a, mant_b
+-// using 2 DSP48e1 to do the mantissa multiplication
+-//mant_a * mant_b = mant_a * b_low + (mant_a * b_high) << 18
+-//take the highest 24 bits and combined with calculated sign_bit
+-//return the result in 25-bit
+-
+-module VX_txu_drl_shared_mul (
+-    input logic clk,
+-    input logic reset,
+-    input logic enable,
+-
+-    input logic [3:0] fmt_s,
+-    input logic [31:0] a,
+-    input logic [31:0] b,
+-
+-    output logic [24:0] y,
+-);
+-
+-// extract sign, exp, frac from a and b
+-logic sign_a, sign_b, sign_p;
+-logic [7:0] exp_a, exp_b;
+-logic [22:0] frac_a, frac_b;
+-
+-assign sign_a = a[31];
+-assign sign_b = b[31];
+-assign sign_p = sign_a ^ sign_b;
+-
+-assign exp_a = a[30:23];
+-assign exp_b = b[30:23];
+-assign frac_a = a[22:0];
+-assign frac_b = b[22:0];
+-
+-//calculate the mantissa
+-logic [23:0] mant_a, mant_b;
+-
+-assign mant_a = {1'b1, frac_a};
+-assign mant_b = {1'b1, frac_b};
+-
+-// split the mant_b into low and high parts, 2 pieces of DSP48e1
+-//b_lo = mant_b[17:0], b_hi = mant_b[23:18]
+-
+-logic [17:0] b_lo;
+-logic [17:0] b_hi_ext;
+-
+-assign b_lo = mant_b[17:0];
+-assign b_hi_ext = {12'b0, mant_b[23:18]};
+-
+-logic [24:0] a_ext;
+-assign a_ext = {1'b0, mant_a};
+-
+-// 2 DSP48e1 to do the multiplication
+-
+-    // ------------------------------------------------------------------------
+-    // 3. DSP control constants
+-    //    according to the configuration in dsp48e1.c:
+-    //      - multiplication:      OPMODE = 0000101, ALUMODE = 0000, INMODE = 00000
+-    //      - A*B + C:     OPMODE = 0110101, same as above
+-    // ------------------------------------------------------------------------
+-
+-    localparam [6:0] OPMODE_MUL     = 7'b0000101; // P = A * B
+-    localparam [6:0] OPMODE_MUL_ADD = 7'b0110101; // P = A * B + C
+-    localparam [3:0] ALUMODE_ADD    = 4'b0000;
+-    localparam [4:0] INMODE_DIRECT  = 5'b00000;
+-    localparam [2:0] CARRYINSEL_ZERO= 3'b000;
+-
+-    // ------------------------------------------------------------------------
+-    // 4. two DSPs: first calculate p_lo = A * b_lo, then calculate p_hi = A * b_hi_ext + (p_lo << 18)
+-    // ------------------------------------------------------------------------
+-
+-    logic [47:0] p_lo;
+-    logic [47:0] p_hi;
+-
+-    // DSP0: p_lo = A_ext * b_lo
+-    DSP48E1 dsp_mul_lo (
+-        // Cascade outputs (unused)
+-        .ACOUT       (),
+-        .BCOUT       (),
+-        .CARRYCASCOUT(),
+-        .MULTSIGNOUT (),
+-        .PCOUT       (),
+-        // Status outputs (unused)
+-        .OVERFLOW    (),
+-        .PATTERNBDETECT(),
+-        .PATTERNDETECT(),
+-        .UNDERFLOW   (),
+-        .CARRYOUT    (),
+-        .P           (p_lo),
+-
+-        // Cascade inputs (unused)
+-        .ACIN        (30'd0),
+-        .BCIN        (18'd0),
+-        .CARRYCASCIN (1'b0),
+-        .MULTSIGNIN  (1'b0),
+-        .PCIN        (48'd0),
+-
+-        // Control
+-        .ALUMODE     (ALUMODE_ADD),
+-        .CARRYINSEL  (CARRYINSEL_ZERO),
+-        .CLK         (clk),
+-        .INMODE      (INMODE_DIRECT),
+-        .OPMODE      (OPMODE_MUL),
+-
+-        // Data
+-        .A           ({5'd0, a_ext}),  // A is 30 bit, a_ext put the lower 25 bits
+-        .B           (b_lo),
+-        .C           (48'd0),
+-        .CARRYIN     (1'b0),
+-        .D           (25'd0),
+-
+-        // Clock enables：here simply raise all, use enable also can
+-        .CEA1        (enable),
+-        .CEA2        (enable),
+-        .CEAD        (enable),
+-        .CEALUMODE   (enable),
+-        .CEB1        (enable),
+-        .CEB2        (enable),
+-        .CEC         (enable),
+-        .CECARRYIN   (enable),
+-        .CECTRL      (enable),
+-        .CED         (enable),
+-        .CEINMODE    (enable),
+-        .CEM         (enable),
+-        .CEP         (enable),
+-
+-        // Resets
+-        .RSTA        (reset),
+-        .RSTALLCARRYIN(reset),
+-        .RSTALUMODE  (reset),
+-        .RSTB        (reset),
+-        .RSTC        (reset),
+-        .RSTCTRL     (reset),
+-        .RSTD        (reset),
+-        .RSTINMODE   (reset),
+-        .RSTM        (reset),
+-        .RSTP        (reset)
+-    );
+-
+-    // to align the timing, delay p_lo by one cycle (optional, but more stable)
+-    logic [47:0] p_lo_r;
+-    always_ff @(posedge clk) begin
+-        if (reset) begin
+-            p_lo_r <= '0;
+-        end else if (enable) begin
+-            p_lo_r <= p_lo;
+-        end
+-    end
+-
+-    // C = p_lo_r << 18
+-    logic [47:0] c_hi;
+-    assign c_hi = p_lo_r << 18;
+-
+-    // DSP1: p_hi = A_ext * b_hi_ext + (p_lo_r << 18)
+-    DSP48E1 dsp_mul_hi (
+-        // Cascade outputs (unused)
+-        .ACOUT       (),
+-        .BCOUT       (),
+-        .CARRYCASCOUT(),
+-        .MULTSIGNOUT (),
+-        .PCOUT       (),
+-        // Status outputs (unused)
+-        .OVERFLOW    (),
+-        .PATTERNBDETECT(),
+-        .PATTERNDETECT(),
+-        .UNDERFLOW   (),
+-        .CARRYOUT    (),
+-        .P           (p_hi),
+-
+-        // Cascade inputs (unused here)
+-        .ACIN        (30'd0),
+-        .BCIN        (18'd0),
+-        .CARRYCASCIN (1'b0),
+-        .MULTSIGNIN  (1'b0),
+-        .PCIN        (48'd0),
+-
+-        // Control
+-        .ALUMODE     (ALUMODE_ADD),
+-        .CARRYINSEL  (CARRYINSEL_ZERO),
+-        .CLK         (clk),
+-        .INMODE      (INMODE_DIRECT),
+-        .OPMODE      (OPMODE_MUL_ADD),  // A*B + C
+-
+-        // Data
+-        .A           ({5'd0, a_ext}),
+-        .B           (b_hi_ext),
+-        .C           (c_hi),            // p_lo_r << 18
+-        .CARRYIN     (1'b0),
+-        .D           (25'd0),
+-
+-        // Clock enables
+-        .CEA1        (enable),
+-        .CEA2        (enable),
+-        .CEAD        (enable),
+-        .CEALUMODE   (enable),
+-        .CEB1        (enable),
+-        .CEB2        (enable),
+-        .CEC         (enable),
+-        .CECARRYIN   (enable),
+-        .CECTRL      (enable),
+-        .CED         (enable),
+-        .CEINMODE    (enable),
+-        .CEM         (enable),
+-        .CEP         (enable),
+-
+-        // Resets
+-        .RSTA        (reset),
+-        .RSTALLCARRYIN(reset),
+-        .RSTALUMODE  (reset),
+-        .RSTB        (reset),
+-        .RSTC        (reset),
+-        .RSTCTRL     (reset),
+-        .RSTD        (reset),
+-        .RSTINMODE   (reset),
+-        .RSTM        (reset),
+-        .RSTP        (reset)
+-    );
+-
+-    // ------------------------------------------------------------------------
+-    // 5. take the highest 24 bits from the 48-bit product to form the magnitude, and combine with sign to form the 25-bit mantissa
+-    //    note: here is the raw mantissa, the real normalize/round is done in the later norm_round stage
+-    // ------------------------------------------------------------------------
+-
+-    logic [23:0] mag_fp32;
+-
+-    always_ff @(posedge clk) begin
+-        if (reset) begin
+-            mag_fp32 <= '0;
+-            y        <= '0;
+-        end else if (enable) begin
+-            // here simply take the highest 24 bits (can be adjusted according to the implementation of the later norm_round stage)
+-            mag_fp32 <= p_hi[47 -: 24];
+-            y        <= {sign_p, mag_fp32};
+-        end
+-    end
+-
++// Copyright © 2019-2023
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++// http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++`include "VX_define.vh"
++
++// This module is used to multiply two fp32 operands
++// following IEEE 754 format, extract sign_a, sign_b, exp_a, exp_b, frac_a, frac_b
++//form 24-bit mantissa multiplication mant_a, mant_b
++// using 2 DSP48e1 to do the mantissa multiplication
++//mant_a * mant_b = mant_a * b_low + (mant_a * b_high) << 18
++//take the highest 24 bits and combined with calculated sign_bit
++//return the result in 25-bit
++
++module VX_txu_drl_shared_mul (
++    input logic clk,
++    input logic reset,
++    input logic enable,
++
++    input logic [3:0] fmt_s,
++    input logic [31:0] a,
++    input logic [31:0] b,
++
++    output logic [24:0] y,
++);
++
++// extract sign, exp, frac from a and b
++logic sign_a, sign_b, sign_p;
++logic [7:0] exp_a, exp_b;
++logic [22:0] frac_a, frac_b;
++
++assign sign_a = a[31];
++assign sign_b = b[31];
++assign sign_p = sign_a ^ sign_b;
++
++assign exp_a = a[30:23];
++assign exp_b = b[30:23];
++assign frac_a = a[22:0];
++assign frac_b = b[22:0];
++
++//calculate the mantissa
++logic [23:0] mant_a, mant_b;
++
++assign mant_a = {1'b1, frac_a};
++assign mant_b = {1'b1, frac_b};
++
++// split the mant_b into low and high parts, 2 pieces of DSP48e1
++//b_lo = mant_b[17:0], b_hi = mant_b[23:18]
++
++logic [17:0] b_lo;
++logic [17:0] b_hi_ext;
++
++assign b_lo = mant_b[17:0];
++assign b_hi_ext = {12'b0, mant_b[23:18]};
++
++logic [24:0] a_ext;
++assign a_ext = {1'b0, mant_a};
++
++// 2 DSP48e1 to do the multiplication
++
++    // ------------------------------------------------------------------------
++    // 3. DSP control constants
++    //    according to the configuration in dsp48e1.c:
++    //      - multiplication:      OPMODE = 0000101, ALUMODE = 0000, INMODE = 00000
++    //      - A*B + C:     OPMODE = 0110101, same as above
++    // ------------------------------------------------------------------------
++
++    localparam [6:0] OPMODE_MUL     = 7'b0000101; // P = A * B
++    localparam [6:0] OPMODE_MUL_ADD = 7'b0110101; // P = A * B + C
++    localparam [3:0] ALUMODE_ADD    = 4'b0000;
++    localparam [4:0] INMODE_DIRECT  = 5'b00000;
++    localparam [2:0] CARRYINSEL_ZERO= 3'b000;
++
++    // ------------------------------------------------------------------------
++    // 4. two DSPs: first calculate p_lo = A * b_lo, then calculate p_hi = A * b_hi_ext + (p_lo << 18)
++    // ------------------------------------------------------------------------
++
++    logic [47:0] p_lo;
++    logic [47:0] p_hi;
++
++    // DSP0: p_lo = A_ext * b_lo
++    DSP48E1 dsp_mul_lo (
++        // Cascade outputs (unused)
++        .ACOUT       (),
++        .BCOUT       (),
++        .CARRYCASCOUT(),
++        .MULTSIGNOUT (),
++        .PCOUT       (),
++        // Status outputs (unused)
++        .OVERFLOW    (),
++        .PATTERNBDETECT(),
++        .PATTERNDETECT(),
++        .UNDERFLOW   (),
++        .CARRYOUT    (),
++        .P           (p_lo),
++
++        // Cascade inputs (unused)
++        .ACIN        (30'd0),
++        .BCIN        (18'd0),
++        .CARRYCASCIN (1'b0),
++        .MULTSIGNIN  (1'b0),
++        .PCIN        (48'd0),
++
++        // Control
++        .ALUMODE     (ALUMODE_ADD),
++        .CARRYINSEL  (CARRYINSEL_ZERO),
++        .CLK         (clk),
++        .INMODE      (INMODE_DIRECT),
++        .OPMODE      (OPMODE_MUL),
++
++        // Data
++        .A           ({5'd0, a_ext}),  // A is 30 bit, a_ext put the lower 25 bits
++        .B           (b_lo),
++        .C           (48'd0),
++        .CARRYIN     (1'b0),
++        .D           (25'd0),
++
++        // Clock enables：here simply raise all, use enable also can
++        .CEA1        (enable),
++        .CEA2        (enable),
++        .CEAD        (enable),
++        .CEALUMODE   (enable),
++        .CEB1        (enable),
++        .CEB2        (enable),
++        .CEC         (enable),
++        .CECARRYIN   (enable),
++        .CECTRL      (enable),
++        .CED         (enable),
++        .CEINMODE    (enable),
++        .CEM         (enable),
++        .CEP         (enable),
++
++        // Resets
++        .RSTA        (reset),
++        .RSTALLCARRYIN(reset),
++        .RSTALUMODE  (reset),
++        .RSTB        (reset),
++        .RSTC        (reset),
++        .RSTCTRL     (reset),
++        .RSTD        (reset),
++        .RSTINMODE   (reset),
++        .RSTM        (reset),
++        .RSTP        (reset)
++    );
++
++    // to align the timing, delay p_lo by one cycle (optional, but more stable)
++    logic [47:0] p_lo_r;
++    always_ff @(posedge clk) begin
++        if (reset) begin
++            p_lo_r <= '0;
++        end else if (enable) begin
++            p_lo_r <= p_lo;
++        end
++    end
++
++    // C = p_lo_r << 18
++    logic [47:0] c_hi;
++    assign c_hi = p_lo_r << 18;
++
++    // DSP1: p_hi = A_ext * b_hi_ext + (p_lo_r << 18)
++    DSP48E1 dsp_mul_hi (
++        // Cascade outputs (unused)
++        .ACOUT       (),
++        .BCOUT       (),
++        .CARRYCASCOUT(),
++        .MULTSIGNOUT (),
++        .PCOUT       (),
++        // Status outputs (unused)
++        .OVERFLOW    (),
++        .PATTERNBDETECT(),
++        .PATTERNDETECT(),
++        .UNDERFLOW   (),
++        .CARRYOUT    (),
++        .P           (p_hi),
++
++        // Cascade inputs (unused here)
++        .ACIN        (30'd0),
++        .BCIN        (18'd0),
++        .CARRYCASCIN (1'b0),
++        .MULTSIGNIN  (1'b0),
++        .PCIN        (48'd0),
++
++        // Control
++        .ALUMODE     (ALUMODE_ADD),
++        .CARRYINSEL  (CARRYINSEL_ZERO),
++        .CLK         (clk),
++        .INMODE      (INMODE_DIRECT),
++        .OPMODE      (OPMODE_MUL_ADD),  // A*B + C
++
++        // Data
++        .A           ({5'd0, a_ext}),
++        .B           (b_hi_ext),
++        .C           (c_hi),            // p_lo_r << 18
++        .CARRYIN     (1'b0),
++        .D           (25'd0),
++
++        // Clock enables
++        .CEA1        (enable),
++        .CEA2        (enable),
++        .CEAD        (enable),
++        .CEALUMODE   (enable),
++        .CEB1        (enable),
++        .CEB2        (enable),
++        .CEC         (enable),
++        .CECARRYIN   (enable),
++        .CECTRL      (enable),
++        .CED         (enable),
++        .CEINMODE    (enable),
++        .CEM         (enable),
++        .CEP         (enable),
++
++        // Resets
++        .RSTA        (reset),
++        .RSTALLCARRYIN(reset),
++        .RSTALUMODE  (reset),
++        .RSTB        (reset),
++        .RSTC        (reset),
++        .RSTCTRL     (reset),
++        .RSTD        (reset),
++        .RSTINMODE   (reset),
++        .RSTM        (reset),
++        .RSTP        (reset)
++    );
++
++    // ------------------------------------------------------------------------
++    // 5. take the highest 24 bits from the 48-bit product to form the magnitude, and combine with sign to form the 25-bit mantissa
++    //    note: here is the raw mantissa, the real normalize/round is done in the later norm_round stage
++    // ------------------------------------------------------------------------
++
++    logic [23:0] mag_fp32;
++
++    always_ff @(posedge clk) begin
++        if (reset) begin
++            mag_fp32 <= '0;
++            y        <= '0;
++        end else if (enable) begin
++            // here simply take the highest 24 bits (can be adjusted according to the implementation of the later norm_round stage)
++            mag_fp32 <= p_hi[47 -: 24];
++            y        <= {sign_p, mag_fp32};
++        end
++    end
++
+ endmodule
+\ No newline at end of file
