@@ -33,7 +33,7 @@ module VX_tcu_fedp_drl #(
     localparam TCK = 2 * N;
     localparam FMUL_LATENCY = 1;
     localparam ALN_LATENCY  = 1;
-    localparam ACC_LATENCY  = 1;
+    localparam ACC_LATENCY  = 2;
     localparam FRND_LATENCY = 1;
     localparam TOTAL_LATENCY= FMUL_LATENCY + ALN_LATENCY + ACC_LATENCY + FRND_LATENCY;
     `STATIC_ASSERT (LATENCY == 0 || LATENCY == TOTAL_LATENCY, ("invalid latency! expected=%0d, actual=%0d", TOTAL_LATENCY, LATENCY));
@@ -129,6 +129,9 @@ module VX_tcu_fedp_drl #(
     VX_tcu_drl_acc #(
         .N(TCK+1)
     ) csa_acc (
+        .clk      (clk),
+        .reset    (reset),
+        .enable   (enable),
         .sigsIn   (pipe_aln_sigs),
         .fmt_sel  (pipe_aln_fmt_sel),
         .sigOut   (acc_sig),

@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_define.vh"
+`include "DSP48E1.vh"
 
 module VX_tcu_drl_acc #(
     parameter N = 5,         //include c_val count
@@ -25,38 +26,48 @@ module VX_tcu_drl_acc #(
     output logic [W-1:0] sigOut,
     output logic [N-2:0] signOuts
 );
+    `UNUSED_VAR(enable);
+    `UNUSED_VAR(reset);
+
     // Sign-extend fp significands to W bits
     wire [N-1:0][W-1:0] sigsIn_ext;
     for (genvar i = 0; i < N; i++) begin : g_ext_sign
         assign sigsIn_ext[i] = fmt_sel ? {{(W-25){1'b0}}, sigsIn[i]} : {{(W-25){sigsIn[i][24]}}, sigsIn[i]};
     end
 
-    /*
+    logic [N-1:0][W-1:0] sigsIn_ext_d1;
+
+    always @(posedge clk) begin
+        sigsIn_ext_d1 <= sigsIn_ext; 
+    end
+
     //Carry-Save-Adder based significand accumulation
     VX_csa_half_en #(
         .N (N),
         .W (W),
         .S (W-1)
     ) sig_csa (
-        .operands (sigsIn_ext),
+        .operands (sigsIn_ext_d1),
         .half_en (1'b1),    // TODO: feed sparsity control signal when resolved
         .sum  (sigOut[W-2:0]),
         .cout (sigOut[W-1])
     );
-    */
+    
+
+    /*
 
     // DSP Slice Outputs
-    logic [N-1:0][29:0] acout;
-    logic [N-1:0][17:0] bcout;
-    logic [N-1:0] carrycascout;
-    logic [N-1:0] multsignout;
-    logic [N-1:0][47:0] pcout;
-    logic [N-1:0] overflow;
-    logic [N-1:0] patternbdetect;
-    logic [N-1:0] patterndetect;
-    logic [N-1:0] underflow;
-    logic [N-1:0][3:0] carryout;
-    logic [N-1:0][47:0] p;
+    logic [N-2:0][29:0] acout;
+    logic [N-2:0][17:0] bcout;
+    logic [N-2:0] carrycascout;
+    logic [N-2:0] multsignout;
+    logic [N-2:0][47:0] pcout;
+    logic [N-2:0] overflow;
+    logic [N-2:0] patternbdetect;
+    logic [N-2:0] patterndetect;
+    logic [N-2:0] underflow;
+    logic [N-2:0][3:0] carryout;
+    logic [N-2:0][47:0] p;
 
     `UNUSED_VAR(acout);
     `UNUSED_VAR(bcout);
@@ -70,24 +81,23 @@ module VX_tcu_drl_acc #(
     `UNUSED_VAR(carryout);
 
     // DSP Slice Inputs
-    wire [N-1:0][29:0] acin;
-    wire [N-1:0][17:0] bcin;
-    wire [N-1:0] carrycascin;
-    wire [N-1:0] multsignin;
-    wire [N-1:0][47:0] pcin;
-    wire [N-1:0][3:0] alumode;
-    wire [N-1:0][2:0] carryinsel;
-    wire [N-1:0] clk;
-    wire [N-1:0][4:0] inmode;
-    wire [N-1:0][6:0] opmode;
-    wire [N-1:0][29:0] a;
-    wire [N-1:0][17:0] b;
-    wire [N-1:0][47:0] c;
-    wire [N-1:0] carryin;
-    wire [N-1:0][24:0] d;
+    wire [N-2:0][29:0] acin;
+    wire [N-2:0][17:0] bcin;
+    wire [N-2:0] carrycascin;
+    wire [N-2:0] multsignin;
+    wire [N-2:0][47:0] pcin;
+    wire [N-2:0][3:0] alumode;
+    wire [N-2:0][2:0] carryinsel;
+    wire [N-2:0][4:0] inmode;
+    wire [N-2:0][6:0] opmode;
+    wire [N-2:0][29:0] a;
+    wire [N-2:0][17:0] b;
+    wire [N-2:0][47:0] c;
+    wire [N-2:0] carryin;
+    wire [N-2:0][24:0] d;
 
     // Configure DSP Slice Inputs
-    for (genvar i = 0; i < N; i++) begin
+    for (genvar i = 0; i < N-1; i++) begin : static_inputs
         assign d[i]             = 25'b0; // Note: D the pre-adder input, which has a limit of only 24 bits
         assign acin[i]          = 30'b0;
         assign bcin[i]          = 18'b0;
@@ -136,7 +146,7 @@ module VX_tcu_drl_acc #(
     VX_pipe_register #(
         .DATAW (26),
         .DEPTH (2)
-    ) input_4_pipe (
+    ) p_1_pipe (
         .clk     (clk),
         .reset   (reset),
         .enable  (enable),
@@ -145,40 +155,39 @@ module VX_tcu_drl_acc #(
     );
 
     assign b[3] = p_1_d2[17:0];
-    assign a[3] = {22'b0, p_1_d2[26:18]}; 
+    assign a[3] = {22'b0, p_1_d2[25:18]}; 
     assign c[3] = p[2];
 
     assign sigOut = p[3][W-1:0];
     `UNUSED_VAR(p[3][47:W]); // Only need one extra bit as a carry
 
     // DSP Slice Reset/Clock Enable Inputs
-    wire [N-1:0] cea1;
-    wire [N-1:0] cea2;
-    wire [N-1:0] cead;
-    wire [N-1:0] cealumode;
-    wire [N-1:0] ceb1;
-    wire [N-1:0] ceb2;
-    wire [N-1:0] cec;
-    wire [N-1:0] cecarryin;
-    wire [N-1:0] cectrl;
-    wire [N-1:0] ced;
-    wire [N-1:0] ceinmode;
-    wire [N-1:0] cem;
-    wire [N-1:0] cep;
-    wire [N-1:0] rsta;
-    wire [N-1:0] rstallcarryin;
-    wire [N-1:0] rstalumode;
-    wire [N-1:0] rstb;
-    wire [N-1:0] rstc;
-    wire [N-1:0] rstctrl;
-    wire [N-1:0] rstd;
-    wire [N-1:0] rstinmode;
-    wire [N-1:0] rstm;
-    wire [N-1:0] rstp;
+    wire [N-2:0] cea1;
+    wire [N-2:0] cea2;
+    wire [N-2:0] cead;
+    wire [N-2:0] cealumode;
+    wire [N-2:0] ceb1;
+    wire [N-2:0] ceb2;
+    wire [N-2:0] cec;
+    wire [N-2:0] cecarryin;
+    wire [N-2:0] cectrl;
+    wire [N-2:0] ced;
+    wire [N-2:0] ceinmode;
+    wire [N-2:0] cem;
+    wire [N-2:0] cep;
+    wire [N-2:0] rsta;
+    wire [N-2:0] rstallcarryin;
+    wire [N-2:0] rstalumode;
+    wire [N-2:0] rstb;
+    wire [N-2:0] rstc;
+    wire [N-2:0] rstctrl;
+    wire [N-2:0] rstd;
+    wire [N-2:0] rstinmode;
+    wire [N-2:0] rstm;
+    wire [N-2:0] rstp;
 
     // Configure reset/clock enables
-    for (genvar i = 0; i < N; i++) begin : g_rsts_ce
-        assign clk[i]               = clk;
+    for (genvar i = 0; i < N-1; i++) begin : g_rsts_ce
         assign cea1[i]              = 1'b1;
         assign cea2[i]              = 1'b1;
         assign cead[i]              = 1'b1;
@@ -204,9 +213,8 @@ module VX_tcu_drl_acc #(
         assign rstp[i]              = 1'b0;
     end
 
-    genvar i;
     generate
-        for (genvar i = 0; i < N; i++) begin : inst_slices
+        for (genvar i = 0; i < N-1; i++) begin : inst_slices
             DSP48E1 #(
                 // Feature Control Attributes: Data Path Selection
                 .A_INPUT("DIRECT"),               // Selects A input source, "DIRECT" (A port) or "CASCADE" (ACIN port)
@@ -261,7 +269,7 @@ module VX_tcu_drl_acc #(
                 // Control: 4-bit (each) input: Control Inputs/Status Bits
                 .ALUMODE(alumode[i]),               // 4-bit input: ALU control input
                 .CARRYINSEL(carryinsel[i]),         // 3-bit input: Carry select input
-                .CLK(clk[i]),                       // 1-bit input: Clock input
+                .CLK(clk),                       // 1-bit input: Clock input
                 .INMODE(inmode[i]),                 // 5-bit input: INMODE control input
                 .OPMODE(opmode[i]),                 // 7-bit input: Operation mode input
                 // Data: 30-bit (each) input: Data Ports
@@ -298,8 +306,12 @@ module VX_tcu_drl_acc #(
         end
     endgenerate
 
+    */
+
     for (genvar i = 0; i < N-1; i++) begin : g_signs
-        assign signOuts[i] = sigsIn[i][24];
+        always @ (posedge clk) begin
+            signOuts[i] <= sigsIn[i][24];
+        end
     end
 
 endmodule

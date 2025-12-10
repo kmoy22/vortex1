@@ -339,9 +339,7 @@ int64_t carry_select(int8_t carryinsel, bool carryin, bool carrycascin, bool car
             carryin_output = (int64_t) (~p & (0x1ULL << 47));
             break;
         case 6: // 110
-            bool a_24 = (a & (0x1ULL << 24)) != 0;
-            bool b_17 = (b & (0x1ULL << 17)) != 0;
-            carryin_output = (int64_t) (a_24 ^ b_17);
+            carryin_output = (int64_t) ((((a & (0x1ULL << 24)) != 0) ^ ((b & (0x1ULL << 17)) != 0)));
             break;
         case 7: // 111
             carryin_output = (int64_t) ~(~p & (0x1ULL << 47));
@@ -418,7 +416,7 @@ int64_t dsp48e1(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c, int32
     }
     
 
-    //printf("A1: 0x%X, A2: 0x%X, B1: 0x%X, B2: 0x%X, C: 0x%lX, D: 0x%X\n", a1_val, a2_val, b1_val, b2_val, c_val, d_val);
+    printf("A1: 0x%X, A2: 0x%X, B1: 0x%X, B2: 0x%X, C: 0x%lX, D: 0x%X\n", a1_val, a2_val, b1_val, b2_val, c_val, d_val);
 
     int32_t a_val_preadder = a_select(a1_val_preadder, a2_val_preadder, inmode);
     int32_t a_val = a_select(a1_val, a2_val, inmode);

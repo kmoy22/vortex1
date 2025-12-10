@@ -148,13 +148,13 @@ module DSP48E1 #(
 `UNUSED_VAR(PCIN);
    
 // DPI-C Code
-import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, byte carryin, byte carrycascin);
+import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
 
 logic [47:0] P_e1;
 logic [47:0] P_e2;
 
 // Configure DPI inputs
-initial begin
+/*initial begin
    int a1 = {2'b0, A1};
    int a2 = {2'b0, A2};
    int b1 = {14'b0, B1};
@@ -172,12 +172,24 @@ initial begin
 
    `UNUSED_VAR(result[63:48]);
    P_e2 = result[47:0];
-end
+end*/
+
+assign P_e2 = {A1, B1} + C;
 
 logic[29:0] A1;
 logic[29:0] A2;
 logic[17:0] B1;
 logic[17:0] B2;
+
+`UNUSED_VAR(B2);
+`UNUSED_VAR(A2);
+`UNUSED_VAR(D);
+`UNUSED_VAR(OPMODE);
+`UNUSED_VAR(INMODE);
+`UNUSED_VAR(ALUMODE);
+`UNUSED_VAR(CARRYINSEL);
+`UNUSED_VAR(CARRYIN);
+`UNUSED_VAR(CARRYCASCIN);
 
 assign A1 = A_INPUT == "DIRECT" ? A : ACIN;
 assign B1 = B_INPUT == "DIRECT" ? B : BCIN;
