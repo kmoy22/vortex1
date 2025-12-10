@@ -37,7 +37,7 @@ DBG_SCOPE_FLAGS += -DDBG_SCOPE_LSU
 DBG_FLAGS += -DDEBUG_LEVEL=$(DEBUG) -DVCD_OUTPUT $(DBG_TRACE_FLAGS)
 
 SRCS = $(SW_COMMON_DIR)/util.cpp $(SW_COMMON_DIR)/mem.cpp $(SW_COMMON_DIR)/softfloat_ext.cpp $(SW_COMMON_DIR)/rvfloats.cpp $(SW_COMMON_DIR)/dram_sim.cpp
-SRCS += $(DPI_DIR)/dpi_util.cpp $(DPI_DIR)/dpi_float.cpp
+SRCS += $(DPI_DIR)/dpi_util.cpp $(DPI_DIR)/dpi_float.cpp $(DPI_DIR)/DSP48E1.cpp
 SRCS += $(SRC_DIR)/fpga.cpp $(SRC_DIR)/opae_sim.cpp
 
 RTL_PKGS = $(AFU_DIR)/local_mem_cfg_pkg.sv $(AFU_DIR)/ccip/ccip_if_pkg.sv
@@ -81,10 +81,10 @@ TOP = vortex_afu_shim
 VL_FLAGS += --language 1800-2009 --assert -Wall -Wpedantic
 VL_FLAGS += -Wno-DECLFILENAME -Wno-REDEFMACRO
 VL_FLAGS += --x-initial unique --x-assign unique
-VL_FLAGS += verilator.vlt
 VL_FLAGS += -DSIMULATION -DSV_DPI
 VL_FLAGS += -DXLEN_$(XLEN)
 VL_FLAGS += $(CONFIGS)
+VL_FLAGS += verilator.vlt
 VL_FLAGS += $(RTL_INCLUDE)
 VL_FLAGS += $(RTL_PKGS)
 
