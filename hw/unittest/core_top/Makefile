@@ -18,6 +18,7 @@ VL_FLAGS += -DSV_DPI
 
 SRCS := $(DPI_DIR)/dpi_util.cpp
 SRCS += $(DPI_DIR)/dpi_float.cpp
+SRCS += $(DPI_DIR)/DSP48E1.cpp
 SRCS += $(SW_COMMON_DIR)/softfloat_ext.cpp
 SRCS += $(SW_COMMON_DIR)/rvfloats.cpp
 SRCS += $(SRC_DIR)/main.cpp

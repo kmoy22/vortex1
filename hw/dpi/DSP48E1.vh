@@ -93,61 +93,114 @@ module DSP48E1 #(
    input logic RSTP                      // 1-bit input: Reset input for PREG
 );
 
+// In this DPI model, we just use one configuration
+`UNUSED_PARAM(A_INPUT);
+`UNUSED_PARAM(B_INPUT);
+`UNUSED_PARAM(USE_DPORT);
+`UNUSED_PARAM(USE_MULT);
+`UNUSED_PARAM(USE_SIMD);
+`UNUSED_PARAM(AUTORESET_PATDET);
+`UNUSED_PARAM(MASK);
+`UNUSED_PARAM(PATTERN);
+`UNUSED_PARAM(SEL_MASK);
+`UNUSED_PARAM(SEL_PATTERN);
+`UNUSED_PARAM(USE_PATTERN_DETECT);
+`UNUSED_PARAM(ACASCREG);
+`UNUSED_PARAM(ALUMODEREG);
+`UNUSED_PARAM(ADREG);
+`UNUSED_PARAM(AREG);
+`UNUSED_PARAM(BCASCREG);
+`UNUSED_PARAM(BREG);
+`UNUSED_PARAM(CARRYINREG);
+`UNUSED_PARAM(CARRYINSELREG);
+`UNUSED_PARAM(CREG);
+`UNUSED_PARAM(DREG);
+`UNUSED_PARAM(INMODEREG);
+`UNUSED_PARAM(MREG);
+`UNUSED_PARAM(OPMODEREG);
+`UNUSED_PARAM(PREG);
+
+`UNUSED_VAR(CEA1);
+`UNUSED_VAR(CEA2);
+`UNUSED_VAR(CEAD);
+`UNUSED_VAR(CEALUMODE);
+`UNUSED_VAR(CEB1);
+`UNUSED_VAR(CEB2);
+`UNUSED_VAR(CEC);
+`UNUSED_VAR(CECARRYIN);
+`UNUSED_VAR(CECTRL);
+`UNUSED_VAR(CED);
+`UNUSED_VAR(CEINMODE);
+`UNUSED_VAR(CEM);
+`UNUSED_VAR(CEP);
+`UNUSED_VAR(RSTA);
+`UNUSED_VAR(RSTALLCARRYIN);
+`UNUSED_VAR(RSTALUMODE);
+`UNUSED_VAR(RSTB);
+`UNUSED_VAR(RSTC);
+`UNUSED_VAR(RSTCTRL);
+`UNUSED_VAR(RSTD);
+`UNUSED_VAR(RSTINMODE);
+`UNUSED_VAR(RSTM);
+`UNUSED_VAR(RSTP);
+
+`UNUSED_VAR(MULTSIGNIN);
+`UNUSED_VAR(PCIN);
+   
 // DPI-C Code
-   import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
-   import "DPI-C" function logic dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
+import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, byte carryin, byte carrycascin);
 
-   initial begin
-      int a1 = A1;
-      int a2 = A2;
-      int b1 = B1;
-      int b2 = B2;
-      int c = C;
-      int d = D;
-      byte opmode = OPMODE;
-      byte alumode = ALUMODE;
-      byte inmode = INMODE;
-      byte carryinsel = CARRYINSEL;
-      logic carryin = CARRYIN;
-      logic carrycascin = CARRYCASCIN;
+logic [47:0] P_e1;
+logic [47:0] P_e2;
 
-      longint result;
-      result = dsp48e1_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
-      logic p_carry;
-      p_carry = dsp48e1_carry_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
+// Configure DPI inputs
+initial begin
+   int a1 = {2'b0, A1};
+   int a2 = {2'b0, A2};
+   int b1 = {14'b0, B1};
+   int b2 = {14'b0, B2};
+   longint c = {16'b0, C};
+   int d = {7'b0, D};
+   byte opmode = {1'b0, OPMODE};
+   byte alumode = {4'b0, ALUMODE};
+   byte inmode = {3'b0, INMODE};
+   byte carryinsel = {5'b0, CARRYINSEL};
+   logic carryin = CARRYIN;
+   logic carrycascin = CARRYCASCIN;
 
-      CARRYOUT[3] = p_carry;
-      P = result[47:0];
-   end
+   longint result = dsp48e1_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
 
-   logic[29:0] A1;
-   logic[29:0] A2;
-   logic[17:0] B1;
-   logic[17:0] B2;
+   `UNUSED_VAR(result[63:48]);
+   P_e2 = result[47:0];
+end
 
-   assign A1 = A_INPUT == "DIRECT" ? A : ACIN;
-   assign B1 = B_INPUT == "DIRECT" ? B : BCIN;
+logic[29:0] A1;
+logic[29:0] A2;
+logic[17:0] B1;
+logic[17:0] B2;
 
-   always @(posedge CLK) begin // Model the pipeline registers for A and B inputs
-      A2 <= A1;
-      B2 <= B1;
-   end
+assign A1 = A_INPUT == "DIRECT" ? A : ACIN;
+assign B1 = B_INPUT == "DIRECT" ? B : BCIN;
 
-   wire unused_ok = &{1'b1,
-                      CEA1, CEA2, CEAD, CEALUMODE, CEB1, CEB2, CEC, CECARRYIN, CECTRL, CED, CEINMODE, CEM, CEP,
-                      RSTA, RSTALLCARRYIN, RSTALUMODE, RSTB, RSTC, RSTCTRL, RSTD, RSTINMODE, RSTM, RSTP};
+always @(posedge CLK) begin // Model the pipeline registers for A and B inputs
+   A2 <= A1;
+   B2 <= B1;
+end
 
-   assign ACOUT = 30'b0;
-   assign BCOUT = 18'b0;
-   assign CARRYCASCOUT = 1'b0;
-   assign MULTSIGNOUT = 1'b0;
-   assign PCOUT = 48'b0;
-   assign OVERFLOW = 1'b0;
-   assign PATTERNBDETECT = 1'b0;
-   assign PATTERNDETECT = 1'b0;
-   assign UNDERFLOW = 1'b0;
-   assign CARRYOUT[2:0] = 3'b0;
+always @(posedge CLK) begin // Model the 2 extra cycles of latency due to the 2 stage DSP block
+   P_e1 <= P_e2;
+   P <= P_e1;
+end 
+
+assign ACOUT = 30'b0;
+assign BCOUT = 18'b0;
+assign CARRYCASCOUT = 1'b0;
+assign MULTSIGNOUT = 1'b0;
+assign PCOUT = 48'b0;
+assign OVERFLOW = 1'b0;
+assign PATTERNBDETECT = 1'b0;
+assign PATTERNDETECT = 1'b0;
+assign UNDERFLOW = 1'b0;
+assign CARRYOUT = 4'b0;
 
 endmodule
-
-// End of DSP48E1_inst instantiation
