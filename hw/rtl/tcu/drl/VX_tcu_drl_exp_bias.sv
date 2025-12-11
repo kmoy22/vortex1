@@ -29,13 +29,14 @@ module VX_tcu_drl_exp_bias (
     `UNUSED_VAR(reset);
     `UNUSED_VAR(clk);
 
-    logic [7:0] raw_exp_y_e;
-    logic exp_low_larger_e;
-    logic [6:0] raw_exp_diff_e;
+    //logic [7:0] raw_exp_y_e;
+    //logic exp_low_larger_e;
+    //logic [6:0] raw_exp_diff_e;
 
     //FP16 exponent addition and bias
     wire [7:0] raw_exp_fp16;
     wire [7:0] fp16_32_conv_bias = 8'd98;    //127-30 + 1
+    /*
     VX_csa_tree #(
         .N(3),
         .W(8),
@@ -44,7 +45,7 @@ module VX_tcu_drl_exp_bias (
         .operands({{3'd0, a[14:10]}, {3'd0, b[14:10]}, fp16_32_conv_bias}),
         .sum     (raw_exp_fp16),
         `UNUSED_PIN (cout)
-    );
+    );*/
     
     //BF16 exponent addition and bias
     wire [7:0] raw_exp_bf16;
@@ -118,33 +119,33 @@ module VX_tcu_drl_exp_bias (
     always_comb begin
         case(fmt_s[2:0])
             3'd1: begin
-                raw_exp_y_e      = raw_exp_fp16;
-                exp_low_larger_e = 1'bx;
-                raw_exp_diff_e   = 7'dx;                 
+                raw_exp_y      = raw_exp_fp16;
+                exp_low_larger = 1'bx;
+                raw_exp_diff   = 7'dx;                 
             end
             3'd2: begin
-                raw_exp_y_e      = raw_exp_bf16;
-                exp_low_larger_e = 1'bx;
-                raw_exp_diff_e   = 7'dx;                    
+                raw_exp_y      = raw_exp_bf16;
+                exp_low_larger = 1'bx;
+                raw_exp_diff   = 7'dx;                    
             end
             3'd3: begin
-                raw_exp_y_e      = raw_exp_fp8;
-                exp_low_larger_e = fp8_exp_low_larger;
-                raw_exp_diff_e   = {raw_exp_fp8_diff[5], raw_exp_fp8_diff};                    
+                raw_exp_y      = raw_exp_fp8;
+                exp_low_larger = fp8_exp_low_larger;
+                raw_exp_diff   = {raw_exp_fp8_diff[5], raw_exp_fp8_diff};                    
             end
             3'd4: begin
-                raw_exp_y_e      = raw_exp_bf8;
-                exp_low_larger_e = bf8_exp_low_larger;
-                raw_exp_diff_e   = raw_exp_bf8_diff;                    
+                raw_exp_y      = raw_exp_bf8;
+                exp_low_larger = bf8_exp_low_larger;
+                raw_exp_diff   = raw_exp_bf8_diff;                    
             end
             default: begin
-                raw_exp_y_e      = 8'dx;
-                exp_low_larger_e = 1'bx;
-                raw_exp_diff_e   = 7'dx;
+                raw_exp_y      = 8'dx;
+                exp_low_larger = 1'bx;
+                raw_exp_diff   = 7'dx;
             end
         endcase
     end
-
+/*
     VX_pipe_register #(
         .DATAW (8+7+1),
         .DEPTH (2)
@@ -154,9 +155,9 @@ module VX_tcu_drl_exp_bias (
         .enable  (enable),
         .data_in ({raw_exp_y_e, exp_low_larger_e, raw_exp_diff_e}),
         .data_out({raw_exp_y, exp_low_larger, raw_exp_diff})
-    );
+    );*/
 
-/*
+
     // DSP Block Signals - Outputs
     logic [29:0] acout;
     logic [17:0] bcout;
@@ -357,5 +358,5 @@ module VX_tcu_drl_exp_bias (
         .RSTM(rstm),                     // 1-bit input: Reset input for MREG
         .RSTP(rstp)                      // 1-bit input: Reset input for PREG
     );
-*/
+
 endmodule

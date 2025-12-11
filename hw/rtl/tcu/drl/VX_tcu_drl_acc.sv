@@ -26,11 +26,11 @@ module VX_tcu_drl_acc #(
     output logic [W-1:0] sigOut,
     output logic [N-2:0] signOuts
 );
-    logic [W-1:0] sigOut_e;
+    //logic [W-1:0] sigOut_e;
     logic [N-2:0] signOuts_e;
     `UNUSED_VAR(fmt_sel);
     `UNUSED_VAR(enable);
-
+    /*
     // Sign-extend fp significands to W bits
     wire [N-1:0][W-1:0] sigsIn_ext;
     for (genvar i = 0; i < N; i++) begin : g_ext_sign
@@ -47,7 +47,7 @@ module VX_tcu_drl_acc #(
         .half_en (1'b1),    // TODO: feed sparsity control signal when resolved
         .sum  (sigOut_e[W-2:0]),
         .cout (sigOut_e[W-1])
-    );    
+    );
 
     VX_pipe_register #(
         .DATAW (W),
@@ -59,8 +59,8 @@ module VX_tcu_drl_acc #(
         .data_in (sigOut_e),
         .data_out(sigOut)
     );
+    */
 
-/*
     // DSP Slice Outputs
     logic [N-2:0][29:0] acout;
     logic [N-2:0][17:0] bcout;
@@ -310,7 +310,7 @@ module VX_tcu_drl_acc #(
             );
         end
     endgenerate
-*/
+
     for (genvar i = 0; i < N-1; i++) begin : g_signs
         assign signOuts_e[i] = sigsIn[i][24];
     end

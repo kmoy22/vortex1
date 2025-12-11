@@ -28,20 +28,20 @@ module VX_tcu_drl_shared_mul (
     `UNUSED_VAR(enable);
     `UNUSED_VAR(reset);
     `UNUSED_VAR(clk);
-    logic [24:0] y_e;
+    //logic [24:0] y_e;
 
     //fp16/bf16 pack 2 ops/reg --> need one instantiation per multiplier slice
     wire sign_f16 = a[15] ^ b[15];
     wire [10:0] a_f16 = fmt_s[0] ? {1'b1, a[9:0]} : {3'd0, 1'b1, a[6:0]};
     wire [10:0] b_f16 = fmt_s[0] ? {1'b1, b[9:0]} : {3'd0, 1'b1, b[6:0]};
     wire [21:0] y_f16;
-    VX_wallace_mul #(
+    /*VX_wallace_mul #(
         .N (11)
     ) wtmul_f16 (
         .a (a_f16),
         .b (b_f16),
         .p (y_f16)
-    );
+    );*/
 
     //fp8/bf8 pack 4 ops/ref --> need two instantiations per multiplier slice
     wire [1:0] sign_f8;
@@ -130,16 +130,16 @@ module VX_tcu_drl_shared_mul (
     //Select sig out based on datatype
     always_comb begin
         case (fmt_s)
-            4'd1: y_e = {sign_f16, y_f16, 2'd0};          //fp16
-            4'd2: y_e = {sign_f16, y_f16[15:0], 8'd0};    //bf16
-            4'd3: y_e = {sign_f8_add, y_f8_add};          //fp8
-            4'd4: y_e = {sign_f8_add, y_f8_add};          //bf8
-            4'd9: y_e = 25'($signed(y_i8_add));           //int8
-            4'd12: y_e = {15'd0, y_u4_add};               //uint4
-            default: y_e = 25'hxxxxxxx;
+            4'd1: y = {sign_f16, y_f16, 2'd0};          //fp16
+            4'd2: y = {sign_f16, y_f16[15:0], 8'd0};    //bf16
+            4'd3: y = {sign_f8_add, y_f8_add};          //fp8
+            4'd4: y = {sign_f8_add, y_f8_add};          //bf8
+            4'd9: y = 25'($signed(y_i8_add));           //int8
+            4'd12: y = {15'd0, y_u4_add};               //uint4
+            default: y = 25'hxxxxxxx;
         endcase
     end
-
+/*
     VX_pipe_register #(
         .DATAW (25),
         .DEPTH (2)
@@ -150,7 +150,7 @@ module VX_tcu_drl_shared_mul (
         .data_in (y_e),
         .data_out(y)
     );
-/*
+*/
     // DSP Block Signals - Outputs
     logic [29:0] acout;
     logic [17:0] bcout;
@@ -196,7 +196,7 @@ module VX_tcu_drl_shared_mul (
     wire [24:0] din;
 
     // Configure DSP Slice Inputs for A*B operation
-    assign ain         = {16'b0, a_f16};
+    assign ain         = {19'b0, a_f16};
     assign bin         = {7'b0, b_f16};
     assign cin         = 48'b0;
     assign din         = 25'b0;
@@ -298,7 +298,7 @@ module VX_tcu_drl_shared_mul (
         .ACOUT(acout),                   // 30-bit output: A port cascade output
         .BCOUT(bcout),                   // 18-bit output: B port cascade output
         .CARRYCASCOUT(carrycascout),     // 1-bit output: Cascade carry output
-        .MULTSIGNOUT(multisignout),       // 1-bit output: Multiplier sign cascade output
+        .MULTSIGNOUT(multsignout),       // 1-bit output: Multiplier sign cascade output
         .PCOUT(pcout),                   // 48-bit output: Cascade output
         // Control: 1-bit (each) output: Control Inputs/Status Bits
         .OVERFLOW(overflow),             // 1-bit output: Overflow in add/acc output
@@ -351,5 +351,5 @@ module VX_tcu_drl_shared_mul (
         .RSTM(rstm),                     // 1-bit input: Reset input for MREG
         .RSTP(rstp)                      // 1-bit input: Reset input for PREG
     );
-*/
+
 endmodule

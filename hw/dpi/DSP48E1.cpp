@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define USE_DPORT = 1;
+#define USE_DPORT 1
 
 extern "C" {
     long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin);
@@ -416,7 +416,9 @@ int64_t dsp48e1(int32_t a1, int32_t a2, int32_t b1, int32_t b2, int64_t c, int32
     }
     
 
-    printf("A1: 0x%X, A2: 0x%X, B1: 0x%X, B2: 0x%X, C: 0x%lX, D: 0x%X\n", a1_val, a2_val, b1_val, b2_val, c_val, d_val);
+        printf("A1: 0x%X, A2: 0x%X, B1: 0x%X, B2: 0x%X, C: 0x%llX, D: 0x%X\n",
+            (unsigned int)a1_val, (unsigned int)a2_val, (unsigned int)b1_val, (unsigned int)b2_val,
+            (unsigned long long)c_val, (unsigned int)d_val);
 
     int32_t a_val_preadder = a_select(a1_val_preadder, a2_val_preadder, inmode);
     int32_t a_val = a_select(a1_val, a2_val, inmode);
@@ -590,33 +592,61 @@ int main() {
     // Test A * B operation
     int8_t opmode = 0b0000101;
     int8_t alumode = 0b0000; // 2nd stage addition
-    int8_t inmode = 0b00000; // Use A2, B2, no pre-adder
+    int8_t inmode = 0b10001; 
     int8_t carryinsel = 0b000; // Use CARRYIN
     bool carryin = false;
     bool casrycascin = false;
 
-    int64_t result = dsp48e1(a, a, b, b, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
+    int64_t result = dsp48e1(a, 0, b, 0, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
 
-    printf("Result: 0x%1X\n", result);
-    printf("Result: %d\n", result);
+    printf("Result: 0x%llX\n", (unsigned long long)result);
+    printf("Result: %lld\n", (long long)result);
 
     // Test A * B + C operation
     opmode = 0b0110101;
 
-    result = dsp48e1(a, a, b, b, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
+    result = dsp48e1(a, 0, b, 0, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
 
-    printf("Result: 0x%1X\n", result);
-    printf("Result: %d\n", result);
+    printf("Result: 0x%llX\n", (unsigned long long)result);
+    printf("Result: %lld\n", (long long)result);
 
     // Test A:B + C operation
     a = 0;
     b = 10;
     opmode = 0b0001111;
 
+    result = dsp48e1(a, 0, b, 0, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
+
+    printf("Result: 0x%llX\n", (unsigned long long)result);
+    printf("Result: %lld\n", (long long)result);
+
+    // Test (A+D)*B operation
+    a = 7;
+    b = 1;
+    c = 0;
+    d = -5;
+    opmode = 0b0000101;
+    alumode = 0b0000; 
+    inmode = 0b10101; 
+
+    result = dsp48e1(a, 0, b, 0, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
+
+    printf("Result: 0x%llX\n", (unsigned long long)result);
+    printf("Result: %lld\n", (long long)result);
+
+    // Test (A+D)*B + C operation
+    a = 7;
+    b = 1;
+    c = 10;
+    d = -5;
+    opmode = 0b0110101;
+    alumode = 0b0000; 
+    inmode = 0b10101; 
+
     result = dsp48e1(a, a, b, b, c, d, opmode, alumode, inmode, carryinsel, carryin, casrycascin);
 
-    printf("Result: 0x%1X\n", result);
-    printf("Result: %d\n", result);
+    printf("Result: 0x%llX\n", (unsigned long long)result);
+    printf("Result: %lld\n", (long long)result);
 
     return 0;
 }*/
