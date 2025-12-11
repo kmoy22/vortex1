@@ -31,10 +31,10 @@ module VX_tcu_fedp_drl #(
 );
 
     localparam TCK = 2 * N;
-    localparam FMUL_LATENCY = 2;
+    localparam FMUL_LATENCY = 4;
     localparam FMUL_PIPE_LATENCY = 1;
     localparam ALN_PIPE_LATENCY  = 1;
-    localparam ACC_LATENCY = 6;
+    localparam ACC_LATENCY = 9;
     localparam ACC_PIPE_LATENCY = 1;
     localparam FRND_PIPE_LATENCY = 1;
     localparam TOTAL_LATENCY= FMUL_LATENCY + FMUL_PIPE_LATENCY + ALN_PIPE_LATENCY + ACC_LATENCY + ACC_PIPE_LATENCY + FRND_PIPE_LATENCY;

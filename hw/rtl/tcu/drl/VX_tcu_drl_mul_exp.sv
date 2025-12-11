@@ -67,7 +67,7 @@ module VX_tcu_drl_mul_exp #(
     `UNUSED_VAR(fmt_s_d[2:0])
     VX_pipe_register #(
         .DATAW (32+4),
-        .DEPTH (2)
+        .DEPTH (4)
     ) c_val_pipe (
         .clk     (clk),
         .reset   (reset),

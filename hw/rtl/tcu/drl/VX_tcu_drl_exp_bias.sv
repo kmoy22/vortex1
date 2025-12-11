@@ -116,8 +116,9 @@ module VX_tcu_drl_exp_bias (
     );
 
     //Select exp out based on datatype
+    logic [2:0] fmt_s_d;
     always_comb begin
-        case(fmt_s[2:0])
+        case(fmt_s_d[2:0])
             3'd1: begin
                 raw_exp_y      = raw_exp_fp16;
                 exp_low_larger = 1'bx;
@@ -157,6 +158,16 @@ module VX_tcu_drl_exp_bias (
         .data_out({raw_exp_y, exp_low_larger, raw_exp_diff})
     );*/
 
+    VX_pipe_register #(
+        .DATAW (3),
+        .DEPTH (4)
+    ) fmt_s_pipe (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in (fmt_s),
+        .data_out(fmt_s_d)
+    );
 
     // DSP Block Signals - Outputs
     logic [29:0] acout;

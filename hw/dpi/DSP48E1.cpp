@@ -11,7 +11,7 @@
 
 extern "C" {
     long long dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin);
-    unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin);
+    //unsigned char dsp48e1_carry_dpi_wrapper(int a1, int a2, int b1, int b2, long long c, int d, signed char opmode, signed char alumode, signed char inmode, signed char carryinsel, bool carryin, bool carrycascin);
 }
 
 int32_t a_select(int32_t a1, int32_t a2, int8_t inmode) {

@@ -317,7 +317,7 @@ module VX_tcu_drl_acc #(
 
     VX_pipe_register #(
         .DATAW (N-1),
-        .DEPTH (6)
+        .DEPTH (9)
     ) signOuts_pipe (
         .clk     (clk),
         .reset   (reset),

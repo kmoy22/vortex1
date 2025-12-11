@@ -25,16 +25,13 @@ module VX_tcu_drl_shared_mul (
     output logic [24:0] y
 );
     //NOTE: exception handling neglected for now
-    `UNUSED_VAR(enable);
-    `UNUSED_VAR(reset);
-    `UNUSED_VAR(clk);
-    //logic [24:0] y_e;
 
     //fp16/bf16 pack 2 ops/reg --> need one instantiation per multiplier slice
     wire sign_f16 = a[15] ^ b[15];
     wire [10:0] a_f16 = fmt_s[0] ? {1'b1, a[9:0]} : {3'd0, 1'b1, a[6:0]};
     wire [10:0] b_f16 = fmt_s[0] ? {1'b1, b[9:0]} : {3'd0, 1'b1, b[6:0]};
     wire [21:0] y_f16;
+    wire [21:0] y_f16_e;
     /*VX_wallace_mul #(
         .N (11)
     ) wtmul_f16 (
@@ -128,8 +125,9 @@ module VX_tcu_drl_shared_mul (
     );
 
     //Select sig out based on datatype
+    logic [3:0] fmt_s_d;
     always_comb begin
-        case (fmt_s)
+        case (fmt_s_d)
             4'd1: y = {sign_f16, y_f16, 2'd0};          //fp16
             4'd2: y = {sign_f16, y_f16[15:0], 8'd0};    //bf16
             4'd3: y = {sign_f8_add, y_f8_add};          //fp8
@@ -139,18 +137,29 @@ module VX_tcu_drl_shared_mul (
             default: y = 25'hxxxxxxx;
         endcase
     end
-/*
+
     VX_pipe_register #(
-        .DATAW (25),
-        .DEPTH (2)
-    ) y_pipe (
+        .DATAW (4),
+        .DEPTH (4)
+    ) fmt_s_pipe (
         .clk     (clk),
         .reset   (reset),
         .enable  (enable),
-        .data_in (y_e),
-        .data_out(y)
+        .data_in (fmt_s),
+        .data_out(fmt_s_d)
     );
-*/
+
+    VX_pipe_register #(
+        .DATAW (22),
+        .DEPTH (1)
+    ) y_f16_pipe (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in (y_f16_e),
+        .data_out(y_f16)
+    );
+
     // DSP Block Signals - Outputs
     logic [29:0] acout;
     logic [17:0] bcout;
@@ -176,7 +185,7 @@ module VX_tcu_drl_shared_mul (
     `UNUSED_VAR(underflow);    
     `UNUSED_VAR(carryout);
 
-    assign y_f16 = p[21:0];
+    assign y_f16_e = p[21:0];
     `UNUSED_VAR(p[47:22]);
     
     // DSP Block Signals - Inputs

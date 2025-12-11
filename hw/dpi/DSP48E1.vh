@@ -93,131 +93,166 @@ module DSP48E1 #(
    input logic RSTP                      // 1-bit input: Reset input for PREG
 );
 
-// In this DPI model, we just use one configuration
-`UNUSED_PARAM(A_INPUT);
-`UNUSED_PARAM(B_INPUT);
-`UNUSED_PARAM(USE_DPORT);
-`UNUSED_PARAM(USE_MULT);
-`UNUSED_PARAM(USE_SIMD);
-`UNUSED_PARAM(AUTORESET_PATDET);
-`UNUSED_PARAM(MASK);
-`UNUSED_PARAM(PATTERN);
-`UNUSED_PARAM(SEL_MASK);
-`UNUSED_PARAM(SEL_PATTERN);
-`UNUSED_PARAM(USE_PATTERN_DETECT);
-`UNUSED_PARAM(ACASCREG);
-`UNUSED_PARAM(ALUMODEREG);
-`UNUSED_PARAM(ADREG);
-`UNUSED_PARAM(AREG);
-`UNUSED_PARAM(BCASCREG);
-`UNUSED_PARAM(BREG);
-`UNUSED_PARAM(CARRYINREG);
-`UNUSED_PARAM(CARRYINSELREG);
-`UNUSED_PARAM(CREG);
-`UNUSED_PARAM(DREG);
-`UNUSED_PARAM(INMODEREG);
-`UNUSED_PARAM(MREG);
-`UNUSED_PARAM(OPMODEREG);
-`UNUSED_PARAM(PREG);
+   // In this DPI model, we just use one configuration
+   `UNUSED_PARAM(A_INPUT);
+   `UNUSED_PARAM(B_INPUT);
+   `UNUSED_PARAM(USE_DPORT);
+   `UNUSED_PARAM(USE_MULT);
+   `UNUSED_PARAM(USE_SIMD);
+   `UNUSED_PARAM(AUTORESET_PATDET);
+   `UNUSED_PARAM(MASK);
+   `UNUSED_PARAM(PATTERN);
+   `UNUSED_PARAM(SEL_MASK);
+   `UNUSED_PARAM(SEL_PATTERN);
+   `UNUSED_PARAM(USE_PATTERN_DETECT);
+   `UNUSED_PARAM(ACASCREG);
+   `UNUSED_PARAM(ALUMODEREG);
+   `UNUSED_PARAM(ADREG);
+   `UNUSED_PARAM(AREG);
+   `UNUSED_PARAM(BCASCREG);
+   `UNUSED_PARAM(BREG);
+   `UNUSED_PARAM(CARRYINREG);
+   `UNUSED_PARAM(CARRYINSELREG);
+   `UNUSED_PARAM(CREG);
+   `UNUSED_PARAM(DREG);
+   `UNUSED_PARAM(INMODEREG);
+   `UNUSED_PARAM(MREG);
+   `UNUSED_PARAM(OPMODEREG);
+   `UNUSED_PARAM(PREG);
 
-`UNUSED_VAR(CEA1);
-`UNUSED_VAR(CEA2);
-`UNUSED_VAR(CEAD);
-`UNUSED_VAR(CEALUMODE);
-`UNUSED_VAR(CEB1);
-`UNUSED_VAR(CEB2);
-`UNUSED_VAR(CEC);
-`UNUSED_VAR(CECARRYIN);
-`UNUSED_VAR(CECTRL);
-`UNUSED_VAR(CED);
-`UNUSED_VAR(CEINMODE);
-`UNUSED_VAR(CEM);
-`UNUSED_VAR(CEP);
-`UNUSED_VAR(RSTA);
-`UNUSED_VAR(RSTALLCARRYIN);
-`UNUSED_VAR(RSTALUMODE);
-`UNUSED_VAR(RSTB);
-`UNUSED_VAR(RSTC);
-`UNUSED_VAR(RSTCTRL);
-`UNUSED_VAR(RSTD);
-`UNUSED_VAR(RSTINMODE);
-`UNUSED_VAR(RSTM);
-`UNUSED_VAR(RSTP);
+   `UNUSED_VAR(CEA1);
+   `UNUSED_VAR(CEA2);
+   `UNUSED_VAR(CEAD);
+   `UNUSED_VAR(CEALUMODE);
+   `UNUSED_VAR(CEB1);
+   `UNUSED_VAR(CEB2);
+   `UNUSED_VAR(CEC);
+   `UNUSED_VAR(CECARRYIN);
+   `UNUSED_VAR(CECTRL);
+   `UNUSED_VAR(CED);
+   `UNUSED_VAR(CEINMODE);
+   `UNUSED_VAR(CEM);
+   `UNUSED_VAR(CEP);
+   `UNUSED_VAR(RSTA);
+   `UNUSED_VAR(RSTALLCARRYIN);
+   `UNUSED_VAR(RSTALUMODE);
+   `UNUSED_VAR(RSTB);
+   `UNUSED_VAR(RSTC);
+   `UNUSED_VAR(RSTCTRL);
+   `UNUSED_VAR(RSTD);
+   `UNUSED_VAR(RSTINMODE);
+   `UNUSED_VAR(RSTM);
+   `UNUSED_VAR(RSTP);
 
-`UNUSED_VAR(MULTSIGNIN);
-`UNUSED_VAR(PCIN);
+   `UNUSED_VAR(MULTSIGNIN);
+   `UNUSED_VAR(PCIN);
+      
+   // DPI-C Code
+   import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
+
+   logic [47:0] P_e0;
+   logic [47:0] P_e1;
+   logic [47:0] P_e2;
+   logic [47:0] P_e3;
+
+   logic [29:0] A1;
+   logic [29:0] A2;
+   logic [17:0] B1;
+   logic [17:0] B2;
+   logic [47:0] C1;
+   logic [24:0] D1;
    
-// DPI-C Code
-import "DPI-C" function longint dsp48e1_dpi_wrapper(int a1, int a2, int b1, int b2, longint c, int d, byte opmode, byte alumode, byte inmode, byte carryinsel, logic carryin, logic carrycascin);
+   logic [3:0] ALUMODE_d;
+   logic [4:0] INMODE_d;
+   logic [4:0] INMODE_d2;
+   logic [4:0] INMODE_d3;
+   logic [4:0] INMODE_d4;
+   logic [6:0] OPMODE_d;
+   logic [2:0] CARRYINSEL_d;
+   logic CARRYIN_d;
 
-logic [47:0] P_e1;
-logic [47:0] P_e2;
+   //assign P_e2 = {26'b0, ({11'b0, A1[10:0]} * {11'b0, B[10:0]})};
 
-logic [29:0] A1;
-logic [29:0] A2;
-logic [17:0] B1;
-logic [17:0] B2;
+   // Configure DPI inputs
+   initial begin
+      int a1 = {2'b0, A1};
+      int a2 = {2'b0, A2};
+      int b1 = {14'b0, B1};
+      int b2 = {14'b0, B2};
+      longint c = {16'b0, C1};
+      int d = {7'b0, D1};
+      byte opmode = {1'b0, OPMODE_d};
+      byte alumode = {4'b0, ALUMODE_d};
+      byte inmode = {3'b0, INMODE_d};
+      byte carryinsel = {5'b0, CARRYINSEL_d};
+      logic carryin = CARRYIN_d;
+      logic carrycascin = CARRYCASCIN;
 
-//assign P_e2 = {26'b0, ({11'b0, A1[10:0]} * {11'b0, B[10:0]})};
+      longint result = dsp48e1_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
 
-// Configure DPI inputs
-initial begin
-   int a1 = {2'b0, A1};
-   int a2 = {2'b0, A2};
-   int b1 = {14'b0, B1};
-   int b2 = {14'b0, B2};
-   longint c = {16'b0, C};
-   int d = {7'b0, D};
-   byte opmode = {1'b0, OPMODE};
-   byte alumode = {4'b0, ALUMODE};
-   byte inmode = {3'b0, INMODE};
-   byte carryinsel = {5'b0, CARRYINSEL};
-   logic carryin = CARRYIN;
-   logic carrycascin = CARRYCASCIN;
+      `UNUSED_VAR(result[63:48]);
+      P_e3 = result[47:0];
+   end
 
-   longint result = dsp48e1_dpi_wrapper(a1, a2, b1, b2, c, d, opmode, alumode, inmode, carryinsel, carryin, carrycascin);
+   /*
+   `UNUSED_VAR(A1);
+   `UNUSED_VAR(B1);
+   `UNUSED_VAR(B2);
+   `UNUSED_VAR(A2);
+   `UNUSED_VAR(C1);
+   `UNUSED_VAR(D1);
+   `UNUSED_VAR(OPMODE);
+   `UNUSED_VAR(INMODE);
+   `UNUSED_VAR(ALUMODE);
+   `UNUSED_VAR(CARRYINSEL);
+   `UNUSED_VAR(CARRYIN);
+   `UNUSED_VAR(CARRYCASCIN);
+   */
 
-   `UNUSED_VAR(result[63:48]);
-   P_e2 = result[47:0];
-end
+   always @(posedge CLK) begin // Model the pipeline registers for the inputs
+      A1 <= A_INPUT == "DIRECT" ? A : ACIN;
+      B1 <= B_INPUT == "DIRECT" ? B : BCIN;
+      A2 <= A1;
+      B2 <= B1;
+      C1 <= C;
+      D1 <= D;
 
-/*
-`UNUSED_VAR(A1);
-`UNUSED_VAR(B1);
-`UNUSED_VAR(B2);
-`UNUSED_VAR(A2);
-`UNUSED_VAR(C);
-`UNUSED_VAR(D);
-`UNUSED_VAR(OPMODE);
-`UNUSED_VAR(INMODE);
-`UNUSED_VAR(ALUMODE);
-`UNUSED_VAR(CARRYINSEL);
-`UNUSED_VAR(CARRYIN);
-`UNUSED_VAR(CARRYCASCIN);
-*/
+      OPMODE_d <= OPMODE;
+      INMODE_d <= INMODE;
+      ALUMODE_d <= ALUMODE;
+      CARRYINSEL_d <= CARRYINSEL;
+      CARRYIN_d <= CARRYIN;
+   end
 
-assign A1 = A_INPUT == "DIRECT" ? A : ACIN;
-assign B1 = B_INPUT == "DIRECT" ? B : BCIN;
+   always @(posedge CLK) begin // Model the 3-4 extra cycles of latency due to the DSP block
+      P_e2 <= P_e3;
+      P_e1 <= P_e2;
+      P_e0 <= P_e1;
 
-always @(posedge CLK) begin // Model the pipeline registers for A and B inputs
-   A2 <= A1;
-   B2 <= B1;
-end
+      INMODE_d2 <= INMODE_d;
+      INMODE_d3 <= INMODE_d2;
+      INMODE_d4 <= INMODE_d3;
+   end 
 
-always @(posedge CLK) begin // Model the 2 extra cycles of latency due to the 2 stage DSP block
-   P_e1 <= P_e2;
-   P <= P_e1;
-end 
+   `UNUSED_VAR(INMODE_d4);
 
-assign ACOUT = 30'b0;
-assign BCOUT = 18'b0;
-assign CARRYCASCOUT = 1'b0;
-assign MULTSIGNOUT = 1'b0;
-assign PCOUT = 48'b0;
-assign OVERFLOW = 1'b0;
-assign PATTERNBDETECT = 1'b0;
-assign PATTERNDETECT = 1'b0;
-assign UNDERFLOW = 1'b0;
-assign CARRYOUT = 4'b0;
+   always @(*) begin
+      if (INMODE_d4[2] == 1'b1) begin
+         P = P_e0;
+      end else begin
+         P = P_e1;
+      end
+   end
+
+   assign ACOUT = 30'b0;
+   assign BCOUT = 18'b0;
+   assign CARRYCASCOUT = 1'b0;
+   assign MULTSIGNOUT = 1'b0;
+   assign PCOUT = 48'b0;
+   assign OVERFLOW = 1'b0;
+   assign PATTERNBDETECT = 1'b0;
+   assign PATTERNDETECT = 1'b0;
+   assign UNDERFLOW = 1'b0;
+   assign CARRYOUT = 4'b0;
 
 endmodule
