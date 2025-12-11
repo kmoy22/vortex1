@@ -26,19 +26,15 @@ module VX_tcu_drl_acc #(
     output logic [W-1:0] sigOut,
     output logic [N-2:0] signOuts
 );
+    logic [W-1:0] sigOut_e;
+    logic [N-2:0] signOuts_e;
+    `UNUSED_VAR(fmt_sel);
     `UNUSED_VAR(enable);
-    `UNUSED_VAR(reset);
 
     // Sign-extend fp significands to W bits
     wire [N-1:0][W-1:0] sigsIn_ext;
     for (genvar i = 0; i < N; i++) begin : g_ext_sign
         assign sigsIn_ext[i] = fmt_sel ? {{(W-25){1'b0}}, sigsIn[i]} : {{(W-25){sigsIn[i][24]}}, sigsIn[i]};
-    end
-
-    logic [N-1:0][W-1:0] sigsIn_ext_d1;
-
-    always @(posedge clk) begin
-        sigsIn_ext_d1 <= sigsIn_ext; 
     end
 
     //Carry-Save-Adder based significand accumulation
@@ -47,15 +43,24 @@ module VX_tcu_drl_acc #(
         .W (W),
         .S (W-1)
     ) sig_csa (
-        .operands (sigsIn_ext_d1),
+        .operands (sigsIn_ext),
         .half_en (1'b1),    // TODO: feed sparsity control signal when resolved
-        .sum  (sigOut[W-2:0]),
-        .cout (sigOut[W-1])
+        .sum  (sigOut_e[W-2:0]),
+        .cout (sigOut_e[W-1])
+    );    
+
+    VX_pipe_register #(
+        .DATAW (W),
+        .DEPTH (6)
+    ) sigOut_pipe (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in (sigOut_e),
+        .data_out(sigOut)
     );
-    
 
-    /*
-
+/*
     // DSP Slice Outputs
     logic [N-2:0][29:0] acout;
     logic [N-2:0][17:0] bcout;
@@ -106,9 +111,9 @@ module VX_tcu_drl_acc #(
         assign pcin[i]          = 48'b0;
         assign carryinsel[i]    = 3'b0;
 
-        // Configure the block to do an A:B + C operation, where B = 1
+        // Configure the block to do an A:B + C operation
         assign alumode[i]       = 4'b0;
-        assign inmode[i]        = 5'b0;
+        assign inmode[i]        = 5'b10001; // B1 and A1
         assign opmode[i]        = 7'b0001111;
         
         assign carryin[i]       = 1'b0;
@@ -187,7 +192,7 @@ module VX_tcu_drl_acc #(
     wire [N-2:0] rstp;
 
     // Configure reset/clock enables
-    for (genvar i = 0; i < N-1; i++) begin : g_rsts_ce
+    for (genvar i = 0; i < N-1; i++) begin : dsp_rst_ce
         assign cea1[i]              = 1'b1;
         assign cea2[i]              = 1'b1;
         assign cead[i]              = 1'b1;
@@ -305,13 +310,20 @@ module VX_tcu_drl_acc #(
             );
         end
     endgenerate
-
-    */
-
+*/
     for (genvar i = 0; i < N-1; i++) begin : g_signs
-        always @ (posedge clk) begin
-            signOuts[i] <= sigsIn[i][24];
-        end
+        assign signOuts_e[i] = sigsIn[i][24];
     end
+
+    VX_pipe_register #(
+        .DATAW (N-1),
+        .DEPTH (6)
+    ) signOuts_pipe (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in (signOuts_e),
+        .data_out(signOuts)
+    );
 
 endmodule

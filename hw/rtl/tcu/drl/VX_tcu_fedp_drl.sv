@@ -31,11 +31,13 @@ module VX_tcu_fedp_drl #(
 );
 
     localparam TCK = 2 * N;
-    localparam FMUL_LATENCY = 1;
-    localparam ALN_LATENCY  = 1;
-    localparam ACC_LATENCY  = 2;
-    localparam FRND_LATENCY = 1;
-    localparam TOTAL_LATENCY= FMUL_LATENCY + ALN_LATENCY + ACC_LATENCY + FRND_LATENCY;
+    localparam FMUL_LATENCY = 2;
+    localparam FMUL_PIPE_LATENCY = 1;
+    localparam ALN_PIPE_LATENCY  = 1;
+    localparam ACC_LATENCY = 6;
+    localparam ACC_PIPE_LATENCY = 1;
+    localparam FRND_PIPE_LATENCY = 1;
+    localparam TOTAL_LATENCY= FMUL_LATENCY + FMUL_PIPE_LATENCY + ALN_PIPE_LATENCY + ACC_LATENCY + ACC_PIPE_LATENCY + FRND_PIPE_LATENCY;
     `STATIC_ASSERT (LATENCY == 0 || LATENCY == TOTAL_LATENCY, ("invalid latency! expected=%0d, actual=%0d", TOTAL_LATENCY, LATENCY));
 
     `UNUSED_VAR ({fmt_d, c_val});
@@ -61,6 +63,8 @@ module VX_tcu_fedp_drl #(
     VX_tcu_drl_mul_exp #(
         .N(TCK+1)
     ) mul_exp (
+        .clk           (clk),
+        .reset         (reset),
         .enable        (enable),
         .fmt_s         (fmt_s),
         .a_rows        (a_row16),
@@ -71,6 +75,20 @@ module VX_tcu_fedp_drl #(
         .raw_sigs      (raw_sigs)
     );
 
+    // Stage 1 Parallel FIFO
+    wire [6:0] hi_c_d;
+    wire fmt_sel_d; 
+    VX_pipe_register #(
+        .DATAW (7+1),
+        .DEPTH (FMUL_LATENCY)
+    ) fifo_fmul (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in ({hi_c, fmt_sel}),
+        .data_out({hi_c_d, fmt_sel_d})
+    );
+
     //Stage 1 pipeline reg
     wire [7:0] pipe_raw_max_exp;
     wire [TCK:0][7:0] pipe_shift_amounts;
@@ -79,12 +97,12 @@ module VX_tcu_fedp_drl #(
     wire pipe_fmt_sel;
     VX_pipe_register #(
         .DATAW (8+((TCK+1)*8)+((TCK+1)*25)+7+1),
-        .DEPTH (FMUL_LATENCY)
+        .DEPTH (FMUL_PIPE_LATENCY)
     ) pipe_fmul (
         .clk     (clk),
         .reset   (reset),
         .enable  (enable),
-        .data_in ({raw_max_exp, shift_amounts, raw_sigs, hi_c, fmt_sel}),
+        .data_in ({raw_max_exp, shift_amounts, raw_sigs, hi_c_d, fmt_sel_d}),
         .data_out({pipe_raw_max_exp, pipe_shift_amounts, pipe_raw_sigs, pipe_hi_c, pipe_fmt_sel})
     );
 
@@ -110,7 +128,7 @@ module VX_tcu_fedp_drl #(
     wire pipe_aln_fmt_sel;
     VX_pipe_register #(
         .DATAW (8+((TCK+1)*25)+7+1),
-        .DEPTH (ALN_LATENCY)
+        .DEPTH (ALN_PIPE_LATENCY)
     ) pipe_aln (
         .clk     (clk),
         .reset   (reset),
@@ -138,6 +156,21 @@ module VX_tcu_fedp_drl #(
         .signOuts (sigs_sign)
     );
 
+    // Stage 3 Parallel FIFO
+    wire [7:0] acc_max_exp_d;
+    wire [6:0] acc_hi_c_d;
+    wire acc_fmt_sel_d;
+    VX_pipe_register #(
+        .DATAW (8+7+1),
+        .DEPTH (ACC_LATENCY)
+    ) fifo_acc (
+        .clk     (clk),
+        .reset   (reset),
+        .enable  (enable),
+        .data_in ({acc_max_exp, acc_hi_c, acc_fmt_sel}),
+        .data_out({acc_max_exp_d, acc_hi_c_d, acc_fmt_sel_d})
+    );
+
     //Stage 3 pipeline reg
     wire [7:0] pipe_acc_max_exp;
     wire [6:0] pipe_acc_hi_c;
@@ -146,12 +179,12 @@ module VX_tcu_fedp_drl #(
     wire [TCK-1:0] pipe_sigs_sign;
     VX_pipe_register #(
         .DATAW (8+25+$clog2(TCK+1)+1+7+1+TCK),
-        .DEPTH (ACC_LATENCY)
+        .DEPTH (ACC_PIPE_LATENCY)
     ) pipe_acc (
         .clk     (clk),
         .reset   (reset),
         .enable  (enable),
-        .data_in ({acc_max_exp, acc_sig, acc_hi_c, acc_fmt_sel, sigs_sign}),
+        .data_in ({acc_max_exp_d, acc_sig, acc_hi_c_d, acc_fmt_sel_d, sigs_sign}),
         .data_out({pipe_acc_max_exp, pipe_acc_sig, pipe_acc_hi_c, pipe_acc_fmt_sel, pipe_sigs_sign})
     );
 
@@ -174,7 +207,7 @@ module VX_tcu_fedp_drl #(
     wire [31:0] fedp_result;
     VX_pipe_register #(
         .DATAW (32),
-        .DEPTH (FRND_LATENCY)
+        .DEPTH (FRND_PIPE_LATENCY)
     ) pipe_norm_round (
         .clk     (clk),
         .reset   (reset),
